@@ -1,31 +1,35 @@
-# Project Name
+# Swiss LLM on Azure Cloud
 
-(short, 1-3 sentenced, description of the project)
+<img src="https://upload.wikimedia.org/wikipedia/commons/f/f3/Flag_of_Switzerland.svg" alt="swiss flag" width="100"/>
+
+This quickstart will help you get up & running with the Swiss LLM models built by the [**Swiss National AI Initiative  (SNAI)**](https://swiss-ai.org), on Azure.
+
+**Note:** As the models are very new, this is a living documentation and will be updated frequently as more information gets publicly available about the models. If you find any errors or inconsistencies, please open a pull request.
+
+
 
 ## Features
+This quickstart provides the following support:
 
-This project framework provides the following features:
+* Instructions on how to download the model from HuggingFace
+* Provision suitable _Spot instances_ in your Azure Subscription
+* Guidance on how to deploy and serve the model for local inference
 
-* Feature 1
-* Feature 2
-* ...
+## Architecture Overview
+For a more in-depth  [Use Azure Kubernetes Service to host GPU-based workloads](https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/containers/aks-gpu/gpu-aks)
+![https://learn.microsoft.com/en-us/azure/architecture/browse/thumbs/aks-baseline-architecture.png](https://learn.microsoft.com/en-us/azure/architecture/browse/thumbs/aks-baseline-architecture.png)
+
 
 ## Getting Started
 
 ### Prerequisites
-
-(ideally very short, if any)
-
-- OS
-- Library version
-- ...
+- An active Azure Subscription with adequate Quota (note that "free trial" or "Azure for Students" subscriptions may not work)
+-... 
 
 ### Installation
 
-(ideally very short)
-
-- npm install [package name]
-- mvn install
+- Step 1
+- Step 2 
 - ...
 
 ### Quickstart
@@ -38,10 +42,7 @@ This project framework provides the following features:
 
 ## Demo
 
-A demo app is included to show how to use the project.
-
-To run the demo, follow these steps:
-
+A demo video is included to show the steps mentioned above.
 (Add steps to start up the demo)
 
 1.
@@ -50,8 +51,11 @@ To run the demo, follow these steps:
 
 ## Resources
 
-(Any additional resources or related projects)
-
-- Link to supporting information
-- Link to similar sample
-- ...
+- Getting Started on Azure
+- Azure Pricing / cost estimator
+- Create a Spot instance
+- Deoploy a GPU-powered VM
+- Azure AI Foundy
+- https://huggingface.co/blog/vpkprasanna/deploying-language-models-on-azure
+- https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/containers/aks-gpu/gpu-aks
+- 

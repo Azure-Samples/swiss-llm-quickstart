@@ -10,6 +10,7 @@ AZURE_VM_NAME="${AZURE_VM_NAME:-vmswissllma100}"
 IMAGE="${AZURE_IMAGE:-Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest}"
 VM_SKU="${VM_SKU:-Standard_NC24ads_A100_v4}"
 AZURE_OS_DISK_SIZE_GB="${AZURE_OS_DISK_SIZE_GB:-512}"
+AZURE_ADMIN_USER="${AZURE_ADMIN_USER:-azureuser}"
 
 az group create --name "$RESOURCE_GROUP" --location "$LOCATION" 1>/dev/null
 
@@ -22,15 +23,13 @@ az vm create \
     --generate-ssh-keys \
     --image "$IMAGE" \
     --priority Spot \
-    --size "$VM_SKU" \
-    --query '{"Provisioning result":provisioningState}' \
-    --output table
+    --size "$VM_SKU"
 
-VM_IP=$(az vm show --resource-group "$RESOURCE_GROUP" --name "$AZURE_VM_NAME" --query 'publicIps' -o tsv)
+VM_IP=$(az vm show --resource-group "$RESOURCE_GROUP" --name "$AZURE_VM_NAME" --show-details --query publicIps -o tsv)
 
 if [ -n "$VM_IP" ]; then
-echo <<EOF
-Virtual Machine created successfully!
+cat <<EOF
+Virtual Machine created successfully! 🎉
 You can connect to it using the following command:
 ssh ${AZURE_ADMIN_USER}@${VM_IP}
 EOF

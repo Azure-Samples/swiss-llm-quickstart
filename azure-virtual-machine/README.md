@@ -17,6 +17,14 @@ TODO
 
 ### Prerequisites
 
+#### GPU Quotas
+
+Be sure to have quota for your virtual machine. You can check quota availability with the following command:
+
+```bash
+az vm list-usage --location "swedencentral" --query "[?name.value=='StandardNCADSA100v4Family']" -o table
+```
+
 TODO
 
 ### Installation

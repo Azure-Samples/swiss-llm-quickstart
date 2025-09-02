@@ -1,7 +1,7 @@
-# APERTUS - The Swiss LLM on Microsoft Azure
+# How to Run APERTUS - The Swiss LLM Model - on Microsoft Azure
 
 
-<img src="https://static.wixstatic.com/media/a4c5cd_17f35b4279124d5a813dd3e3f61b4d5f~mv2.png/v1/fill/w_980,h_551,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/ETH_Apertus_Keyvisual_Final-LY2-3.png" alt="swiss flag" width="500"/>
+<img src="https://cdn-uploads.huggingface.co/production/uploads/6639f08490b7db8dcbf1a2aa/YKux3SpTciL4O60L3Ol-6.jpeg" alt="swiss flag" width="500"/>
 
 
 ## What is APERTUS

@@ -38,6 +38,26 @@ We will use the `Standard_NC24ads_A100_v4` SKU in Azure.
 
 This SKU is available only on a subset of Azure Regions. PLease check the Availablity on the [**Product Availability by Region**](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/table) page.
 
+### Setup your environment
+
+```bash
+export LABEL=swiss-llm-001
+export LOCATION=swedencentral
+```
+
+- `LABEL` is a name that will be re-used for various Azure resources, such as resource groups and virtual machines.
+- `LOCATION` is the Azure region to which your resources will be deployed.
+
+and double check that you have quota:
+
+```bash
+az vm list-usage --location "${LOCATION}" --query "[?name.value=='StandardNCADSA100v4Family']" -o table
+```
+
+![Azure VM Quota Result](../assets/images/azure-virtual-machine-quota.png)
+
+Check that the `Limit` value is at least **24** for `Standard_NC24ads_A100_v4`.
+
 ### Clone the repository
 
 ```bash

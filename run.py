@@ -17,7 +17,7 @@ model = AutoModelForCausalLM.from_pretrained(
 prompt = """
 Give a simple explanation of what gravity is for a high school 
 level physics course with a few typical formulas.
-Use lots of emojis and do it in French, German, Italian and Romansh.
+Use lots of emojis and do it in French, Swiss German, Italian and Romansh.
 """
 
 messages_think = [

@@ -8,6 +8,10 @@ This quickstart provides the following support:
 
 Find other deployment options [here](../README.md)
 
+## Demo
+
+![Demo](../assets/images/azure-virtual-machine-8b-instruct-run.gif)
+
 ## Getting Started
 
 We will use the `Standard_NC24ads_A100_v4` SKU in Azure to host the model.

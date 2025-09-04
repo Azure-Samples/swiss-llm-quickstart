@@ -99,7 +99,7 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
     secrets: concat(keyvalueSecrets, keyvaultIdentitySecrets)
     containers: [
       {
-        image: 'ghcr.io/azure-samples/swiss-llm-quickstart:vllm-openai'
+        image: 'ghcr.io/azure-samples/swiss-llm-quickstart:latest'
         name: 'main'
         env: environmentVariables
         resources: {

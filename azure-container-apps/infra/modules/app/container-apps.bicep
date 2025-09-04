@@ -38,9 +38,6 @@ param externalIngressAllowed bool = true
 @description('The auth config for the container app')
 param authConfig object = {}
 
-@description('True if the container app has already been deployed')
-param exists bool
-
 var keyvalueSecrets = [
   for secret in items(secrets): {
     name: secret.key
@@ -76,14 +73,6 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01'
   name: containerAppsEnvironmentName
 }
 
-module fetchLatestImage './fetch-container-image.bicep' = {
-  name: '${name}-fetch-image'
-  params: {
-    exists: exists
-    name: name
-  }
-}
-
 module app 'br/public:avm/res/app/container-app:0.16.0' = {
   name: name
   params: {
@@ -110,7 +99,7 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
     secrets: concat(keyvalueSecrets, keyvaultIdentitySecrets)
     containers: [
       {
-        image: fetchLatestImage.outputs.?containers[?0].?image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+        image: 'ghcr.io/azure-samples/swiss-llm-quickstart:vllm-openai'
         name: 'main'
         env: environmentVariables
         resources: {
@@ -121,7 +110,7 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
     ]
     scaleSettings: {
       minReplicas: 0
-      maxReplicas: 3
+      maxReplicas: 1
     }
     authConfig: authConfig
   }

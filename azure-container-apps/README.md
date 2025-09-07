@@ -49,13 +49,15 @@ export LABEL=swiss-llm-001
 export LOCATION=switzerlandnorth
 ```
 
-#### Check Container Apps Environmanet and Serverless GPU Quotas
+#### Check Container Apps Environment and Serverless GPU Quotas
 
 Azure Container Apps implements different categories of quotas that govern resource allocation across different aspects of your apps. These quotas are organized into basic quotas that control fundamental resource limits, GPU quotas for applications requiring specialized compute capabilities, and dynamic sessions quotas for session-based workloads.
 
 You can view your quota levels via the [Azure portal](https://ms.portal.azure.com/#view/Microsoft_Azure_Capacity/QuotaMenuBlade/~/myQuotas)
 
 When in the portal, select **Azure Container Apps** for the *Provider*, Subscription and the Regions you are interested in.
+
+
 
 ![Azure VM Quota Result](../assets/images/azure-container-apps-quota.png)
 

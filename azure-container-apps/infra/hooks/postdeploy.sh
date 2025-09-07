@@ -8,13 +8,14 @@ if [ "${SERVICE_BACKEND_EXISTS:-false}" = "true" ]; then
     printf "  \033[32m➜\033[0m Backend service already exists, skipping container app update...\n"
 else 
     printf "  \033[32m➜\033[0m Backend service does not exist, updating container app images...\n"
-    az containerapp update --name apertus-vllm --resource-group ${AZURE_RESOURCE_GROUP} \
+    az containerapp update --name "${AZURE_CONTAINER_APP_NAME}" --resource-group ${AZURE_RESOURCE_GROUP} \
         --container-name apertus-vllm \
-        --image "${AZURE_CONTAINER_REGISTRY_ENDPOINT}/azure-samples/swiss-llm-quickstart:latest"
-
-    az containerapp update --name apertus-ingress --resource-group ${AZURE_RESOURCE_GROUP} \
+        --image "${AZURE_CONTAINER_REGISTRY_ENDPOINT}/azure-samples/swiss-llm-quickstart:latest" \
+        --query "properties.provisioningState"
+    az containerapp update --name "${AZURE_CONTAINER_APP_NAME}" --resource-group ${AZURE_RESOURCE_GROUP} \
         --container-name apertus-ingress \
-        --image "${AZURE_CONTAINER_REGISTRY_ENDPOINT}/azure-samples/swiss-llm-quickstart-ingress:latest"
+        --image "${AZURE_CONTAINER_REGISTRY_ENDPOINT}/azure-samples/swiss-llm-quickstart-ingress:latest" \
+        --query "properties.provisioningState"
 
     azd env set SERVICE_BACKEND_EXISTS true
 fi

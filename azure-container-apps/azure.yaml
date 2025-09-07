@@ -7,6 +7,12 @@ infra:
   module: main
 
 hooks:
+  preprovision:
+    posix:
+      shell: sh
+      run: ./infra/hooks/preprovision.sh
+      interactive: true
+      continueOnError: false
   postprovision:
     posix:
       shell: sh
@@ -16,7 +22,7 @@ hooks:
   postdeploy:
     posix:
       shell: sh
-      run: ./infra/hooks/postprovision.sh
+      run: ./infra/hooks/postdeploy.sh
       interactive: true
       continueOnError: false
 

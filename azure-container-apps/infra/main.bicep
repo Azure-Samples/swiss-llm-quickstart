@@ -131,13 +131,13 @@ var _frontendContainerAppName = empty(frontendContainerAppName)
 /* -------------------------------------------------------------------------- */
 
 // ------------------------------ Storage Account ------------------------------
-module storageAccount 'br/public:avm/res/storage/storage-account:0.26.0' = {
+module storageAccount 'br/public:avm/res/storage/storage-account:0.26.2' = {
   name: '${deployment().name}-storageAccount'
   scope: resourceGroup()
   params: {
+    name: _storageAccountName
     location: location
     tags: tags
-    name: _storageAccountName
     kind: 'StorageV2'
     skuName: 'Standard_ZRS'
     publicNetworkAccess: 'Enabled' 
@@ -216,6 +216,22 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.26.0' = {
         days: 7
       }
     }
+    fileServices: {
+      shares: [
+        {
+          name: 'huggingfacecache'
+          quotaInGB: 500
+          enabledProtocols: 'SMB'
+          roleAssignments: [
+            {
+              roleDefinitionIdOrName: 'Storage File Data SMB Share Contributor'
+              principalId: appIdentity.outputs.principalId
+              principalType: 'ServicePrincipal'
+            }
+          ]
+        }
+      ]
+    }
   }
 }
 
@@ -231,44 +247,180 @@ module appIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.
   }
 }
 
-module app 'modules/app.bicep' = {
-  name: '${deployment().name}-app'
+module containerRegistry 'br/public:avm/res/container-registry/registry:0.9.3' = {
+  name: '${deployment().name}-containerRegistry'
   params: {
-    exists: backendExists
+    name: _containerRegistryName
     location: location
     tags: tags
-    appIdentityName: _appIdentityName
-    appInsightsConnectionString: appInsightsComponent.outputs.connectionString
-    authClientAppId: authClientAppId
-    authClientSecret: authClientSecret
-    authClientSecretName: authClientSecretName
-    authTenantId: authTenantId
-
-    containerAppsEnvironmentName: _containerAppsEnvironmentName
-    containerRegistryName: _containerRegistryName
-    frontendContainerAppName: _frontendContainerAppName
-    keyVaultName: _keyVaultName
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
-    useAuthentication: useAuthentication
-    azurePrincipalId: azurePrincipalId
-
-    storageAccountName: storageAccount.outputs.name
+    acrSku: 'Premium'
+    acrAdminUserEnabled: true
+    exportPolicyStatus: 'enabled'
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'AcrPull'
+        principalId: appIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'AcrPull'
+        principalId: azurePrincipalId
+      }
+    ]
   }
 }
 
-/* ------------------------------ CosmosDB  --------------------------------- */
-
-/* module cosmosDbAccount 'br/public:avm/res/document-db/database-account:0.12.0' = {
-  name: '${deployment().name}-cosmosDbAccount'
+module keyVault 'br/public:avm/res/key-vault/vault:0.12.1' = {
+  name: '${deployment().name}-keyVault'
+  scope: resourceGroup()
   params: {
-    name: _cosmosDbAccountName
+    name: _keyVaultName
     location: location
-    sqlRoleAssignmentsPrincipalIds: [
-      azurePrincipalId
-      appIdentity.outputs.principalId
+    tags: tags
+    enableRbacAuthorization: true
+    enablePurgeProtection: false // Set to true to if you deploy in production and want to protect against accidental deletion
+    roleAssignments: [
+      {
+        roleDefinitionIdOrName: 'Key Vault Secrets User'
+        principalId: appIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'Key Vault Administrator'
+        principalId: azurePrincipalId
+      }
+    ]
+    secrets: huggingFaceHubToken != ''
+      ? [
+          {
+            name: 'hugging-face-hub-token'
+            value: huggingFaceHubToken
+          }
+          {
+            name: authClientSecretName
+            value: authClientSecret
+          }          
+        ]
+      : [
+          {
+            name: authClientSecretName
+            value: authClientSecret
+          }        
+      ]
+  }
+}
+
+module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.10.2' = {
+  name: '${deployment().name}-containerAppsEnvironment'
+  params: {
+    name: _containerAppsEnvironmentName
+    location: location
+    tags: tags
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    daprAIConnectionString: appInsightsComponent.outputs.connectionString
+    zoneRedundant: false
+    publicNetworkAccess: 'Enabled'
+    workloadProfiles: [
+      {
+        workloadProfileType: 'Consumption'
+        name: 'Consumption'
+        enableFips: false
+      }
+      {
+        workloadProfileType: 'Consumption-GPU-NC24-A100'
+        name: 'GPU-NC24-A100'
+        enableFips: false
+      }
+    ]
+    storages: [
+      {
+        accessMode: 'ReadWrite'
+        kind: 'SMB'
+        storageAccountName: storageAccount.outputs.name 
+        shareName: 'huggingfacecache'
+      }
     ]
   }
-} */
+}
+
+/* ------------------------------ Frontend App ------------------------------ */
+
+module frontendApp 'modules/app/container-apps.bicep' = {
+  name: '${deployment().name}-frontendApp'
+  scope: resourceGroup()
+  params: {
+    name: _frontendContainerAppName
+    exists: backendExists
+    tags: tags
+    identityId: appIdentity.outputs.resourceId
+    containerAppsEnvironmentName: containerAppsEnvironment.outputs.name
+    containerRegistryName: containerRegistry.outputs.name
+    serviceName: 'frontend' // Must match the service name in azure.yaml
+    env: {
+      // Required for container app daprAI
+      APPLICATIONINSIGHTS_CONNECTION_STRING:  appInsightsComponent.outputs.connectionString
+      AZURE_RESOURCE_GROUP: resourceGroup().name
+      SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS: true
+      SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS_SENSITIVE: true // OBS! You might want to remove this in production
+
+      // Required for managed identity
+      AZURE_CLIENT_ID: appIdentity.outputs.clientId
+
+      // Required for the frontend app to ask for a token for the backend app
+      AZURE_CLIENT_APP_ID: authClientAppId
+    }
+    secrets: [
+      {
+        name: 'hugging-face-hub-token'
+        keyVaultUrl: '${keyVault.outputs.uri}secrets/hugging-face-hub-token'
+        identity: appIdentity.outputs.resourceId
+      }
+  ]
+    keyvaultIdentities: useAuthentication
+      ? {
+          'microsoft-provider-authentication-secret': {
+            keyVaultUrl: '${keyVault.outputs.uri}secrets/${authClientSecretName}'
+            identity: appIdentity.outputs.resourceId
+          }
+        }
+      : {}
+    authConfig: useAuthentication
+      ? {
+          platform: {
+            enabled: true
+          }
+          globalValidation: {
+            redirectToProvider: 'azureactivedirectory'
+            unauthenticatedClientAction: 'RedirectToLoginPage'
+          }
+          identityProviders: {
+            azureActiveDirectory: {
+              registration: {
+                clientId: authClientAppId
+                clientSecretSettingName: 'microsoft-provider-authentication-secret'
+                openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
+              }
+              validation: {
+                defaultAuthorizationPolicy: {
+                  allowedApplications: [
+                    appIdentity.outputs.clientId
+                    '04b07795-8ddb-461a-bbee-02f9e1bf7b46' // AZ CLI for testing purposes
+                  ]
+                }
+                allowedAudiences: [
+                  'api://${authClientAppId}'
+                ]
+              }
+            }
+          }
+        }
+      : {
+          platform: {
+            enabled: false
+          }
+        }
+  }
+}
 
 /* ---------------------------- Observability  ------------------------------ */
 
@@ -315,7 +467,7 @@ output USE_AUTHENTICATION bool = useAuthentication
 
 // output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
 @description('The endpoint of the container registry.') // necessary for azd deploy
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = app.outputs.containerRegistryLoginServer
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
 
 /* ------------------------ Authentication & RBAC ------------------------- */
 
@@ -344,3 +496,6 @@ output SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS bool = true
 
 @description('Semantic Kernel Diagnostics: if set, content of the messages is traced. Set to false in production')
 output SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS_SENSITIVE bool = true
+
+@description('Name of the created container app')
+output AZURE_CONTAINER_APP_NAME string = frontendApp.outputs.name

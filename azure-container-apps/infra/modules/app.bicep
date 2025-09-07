@@ -71,171 +71,13 @@ resource appIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-3
   name: appIdentityName
 }
 
-module containerRegistry 'br/public:avm/res/container-registry/registry:0.9.3' = {
-  name: '${deployment().name}-containerRegistry'
-  params: {
-    name: containerRegistryName
-    location: location
-    tags: tags
-    acrSku: 'Premium'
-    acrAdminUserEnabled: true
-    exportPolicyStatus: 'enabled'
-    roleAssignments: [
-      {
-        roleDefinitionIdOrName: 'AcrPull'
-        principalId: appIdentity.properties.principalId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: 'AcrPull'
-        principalId: azurePrincipalId
-      }
-    ]
-  }
-}
-
-module keyVault 'br/public:avm/res/key-vault/vault:0.12.1' = {
-  name: '${deployment().name}-keyVault'
-  scope: resourceGroup()
-  params: {
-    name: keyVaultName
-    location: location
-    tags: tags
-    enableRbacAuthorization: true
-    enablePurgeProtection: false // Set to true to if you deploy in production and want to protect against accidental deletion
-    roleAssignments: [
-      {
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
-        principalId: appIdentity.properties.principalId
-        principalType: 'ServicePrincipal'
-      }
-      {
-        roleDefinitionIdOrName: 'Key Vault Administrator'
-        principalId: azurePrincipalId
-      }
-    ]
-    secrets: huggingFaceHubToken != ''
-      ? [
-          {
-            name: 'hugging-face-hub-token'
-            value: huggingFaceHubToken
-          }
-        ]
-      : []
-  }
-}
-
-module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.10.2' = {
-  name: '${deployment().name}-containerAppsEnvironment'
-  params: {
-    name: containerAppsEnvironmentName
-    location: location
-    tags: tags
-    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
-    daprAIConnectionString: appInsightsConnectionString
-    zoneRedundant: false
-    publicNetworkAccess: 'Enabled'
-    workloadProfiles: [
-      {
-        workloadProfileType: 'Consumption'
-        name: 'Consumption'
-        enableFips: false
-      }
-      {
-        workloadProfileType: 'Consumption-GPU-NC24-A100'
-        name: 'GPU-NC24-A100'
-        enableFips: false
-      }
-    ]
-    storages: [
-      {
-        accessMode: 'ReadWrite'
-        kind: 'SMB'
-        storageAccountName: storageAccountName
-        shareName: 'huggingfacecache'
-      }
-    ]
-  }
-}
-
-/* ------------------------------ Frontend App ------------------------------ */
-
-module frontendApp 'app/container-apps.bicep' = {
-  name: '${deployment().name}-frontendContainerApp'
-  scope: resourceGroup()
-  params: {
-    name: frontendContainerAppName
-    exists: exists
-    tags: tags
-    identityId: appIdentity.id
-    containerAppsEnvironmentName: containerAppsEnvironment.outputs.name
-    containerRegistryName: containerRegistry.outputs.name
-    serviceName: 'frontend' // Must match the service name in azure.yaml
-    env: {
-      // Required for container app daprAI
-      APPLICATIONINSIGHTS_CONNECTION_STRING: appInsightsConnectionString
-      AZURE_RESOURCE_GROUP: resourceGroup().name
-      SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS: true
-      SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS_SENSITIVE: true // OBS! You might want to remove this in production
-
-      // Required for managed identity
-      AZURE_CLIENT_ID: appIdentity.properties.clientId
-
-      // Required for the frontend app to ask for a token for the backend app
-      AZURE_CLIENT_APP_ID: authClientAppId
-    }
-    secrets: {
-      'hugging-face-hub-token': 'keyvaultref:${keyVault.outputs.uri}secrets/hugging-face-hub-token'
-    }
-    keyvaultIdentities: useAuthentication
-      ? {
-          'microsoft-provider-authentication-secret': {
-            keyVaultUrl: '${keyVault.outputs.uri}secrets/${authClientSecretName}'
-            identity: appIdentity.id
-          }
-        }
-      : {}
-    authConfig: useAuthentication
-      ? {
-          platform: {
-            enabled: true
-          }
-          globalValidation: {
-            redirectToProvider: 'azureactivedirectory'
-            unauthenticatedClientAction: 'RedirectToLoginPage'
-          }
-          identityProviders: {
-            azureActiveDirectory: {
-              registration: {
-                clientId: authClientAppId
-                clientSecretSettingName: 'microsoft-provider-authentication-secret'
-                openIdIssuer: '${environment().authentication.loginEndpoint}${authTenantId}/v2.0' // Works only for Microsoft Entra
-              }
-              validation: {
-                defaultAuthorizationPolicy: {
-                  allowedApplications: [
-                    appIdentity.properties.clientId
-                    '04b07795-8ddb-461a-bbee-02f9e1bf7b46' // AZ CLI for testing purposes
-                  ]
-                }
-                allowedAudiences: [
-                  'api://${authClientAppId}'
-                ]
-              }
-            }
-          }
-        }
-      : {
-          platform: {
-            enabled: false
-          }
-        }
-  }
-}
 
 /* -------------------------------------------------------------------------- */
 /*                                   OUTPUTS                                  */
 /* -------------------------------------------------------------------------- */
+
+@description('Name of the created container app')
+output name string = frontendApp.outputs.name
 
 @description('Endpoint URL of the Frontend service')
 output frontendAppUrl string = frontendApp.outputs.URL
@@ -248,3 +90,4 @@ output containerRegistryResourceId string = containerRegistry.outputs.resourceId
 
 @description('Container registry login server URL')
 output containerRegistryLoginServer string = containerRegistry.outputs.loginServer
+

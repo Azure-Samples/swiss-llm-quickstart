@@ -29,8 +29,7 @@ param containerAppsEnvironmentName string
 param keyvaultIdentities object = {}
 
 @description('The secrets required for the container')
-@secure()
-param secrets object = {}
+param secrets array = []
 
 @description('External Ingress Allowed?')
 param externalIngressAllowed bool = true
@@ -40,13 +39,6 @@ param authConfig object = {}
 
 @description('True if the container app has already been deployed')
 param exists bool
-
-var keyvalueSecrets = [
-  for secret in items(secrets): {
-    name: secret.key
-    value: secret.value
-  }
-]
 
 var keyvaultIdentitySecrets = [
   for secret in items(keyvaultIdentities): {
@@ -64,9 +56,9 @@ var environment = [
 ]
 
 var secret_refs = [
-  for key in objectKeys(secrets): {
-    name: key
-    secretRef: key
+  for secret in secrets: {
+    name: secret.name
+    secretRef: secret.name
   }
 ]
 
@@ -115,12 +107,16 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
         mountOptions: 'mfsymlinks'
       }
     ]
-    secrets: concat(keyvalueSecrets, keyvaultIdentitySecrets)
+    secrets: concat(secrets, keyvaultIdentitySecrets)
     workloadProfileName: 'GPU-NC24-A100'
     containers: [
       {
         name: 'apertus-vllm'
         image: fetchLatestImage.outputs.?containers[?0].?image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+        args: [
+          '--model'
+          'swiss-ai/Apertus-8B-Instruct-2509'
+        ]
         env: [
           {
             name: 'HUGGING_FACE_HUB_TOKEN'
@@ -135,7 +131,6 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
           {
             volumeName: 'huggingfacecache'
             mountPath: '/root/.cache/huggingface'
-            
           }
         ]
       }

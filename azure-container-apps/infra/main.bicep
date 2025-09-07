@@ -64,6 +64,14 @@ param containerAppsEnvironmentName string = ''
 @description('Name of the frontend container app to deploy. If not specified, a name will be generated. The maximum length is 32 characters.')
 param frontendContainerAppName string = ''
 
+
+@description('Set if the frontend container app already exists.')
+param backendExists bool = false
+
+@description('Hugging Face Hub Token to access private models')
+@secure()
+param huggingFaceHubToken string = ''
+
 /* -------------------------------------------------------------------------- */
 /*                                  VARIABLES                                 */
 /* -------------------------------------------------------------------------- */
@@ -143,7 +151,17 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.26.0' = {
         roleDefinitionIdOrName: 'Storage Blob Data Contributor'
         principalId: azurePrincipalId
         principalType: 'User'
-      }      
+      }   
+      {
+        roleDefinitionIdOrName: 'Storage File Data Privileged Contributor'
+        principalId: appIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+      }
+      {
+        roleDefinitionIdOrName: 'Storage File Data Privileged Contributor'
+        principalId: azurePrincipalId
+        principalType: 'User'
+      }
     ]
     blobServices: {
       corsRules: [
@@ -216,6 +234,7 @@ module appIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.
 module app 'modules/app.bicep' = {
   name: '${deployment().name}-app'
   params: {
+    exists: backendExists
     location: location
     tags: tags
     appIdentityName: _appIdentityName
@@ -232,6 +251,8 @@ module app 'modules/app.bicep' = {
     logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
     useAuthentication: useAuthentication
     azurePrincipalId: azurePrincipalId
+
+    storageAccountName: storageAccount.outputs.name
   }
 }
 
@@ -323,4 +344,3 @@ output SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS bool = true
 
 @description('Semantic Kernel Diagnostics: if set, content of the messages is traced. Set to false in production')
 output SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS_SENSITIVE bool = true
-

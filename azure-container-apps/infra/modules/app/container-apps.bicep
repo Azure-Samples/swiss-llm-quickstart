@@ -38,6 +38,9 @@ param externalIngressAllowed bool = true
 @description('The auth config for the container app')
 param authConfig object = {}
 
+@description('True if the container app has already been deployed')
+param exists bool
+
 var keyvalueSecrets = [
   for secret in items(secrets): {
     name: secret.key
@@ -73,6 +76,14 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01'
   name: containerAppsEnvironmentName
 }
 
+module fetchLatestImage './fetch-container-image.bicep' = {
+  name: '${name}-fetch-image'
+  params: {
+    exists: exists
+    name: name
+  }
+}
+
 module app 'br/public:avm/res/app/container-app:0.16.0' = {
   name: name
   params: {
@@ -80,11 +91,11 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
     location: location
     tags: union(tags, { 'azd-service-name': serviceName })
     managedIdentities: {
-      userAssignedResourceIds: [ identityId ]
+      userAssignedResourceIds: [identityId]
     }
     environmentResourceId: containerAppsEnvironment.id
     ingressExternal: externalIngressAllowed
-    ingressTargetPort: 8000
+    ingressTargetPort: 80
     ingressTransport: 'auto'
     ingressAllowInsecure: false
     corsPolicy: {
@@ -96,15 +107,44 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
         identity: identityId
       }
     ]
+    volumes: [
+      {
+        name: 'huggingfacecache'
+        storageType: 'AzureFile'
+        storageName: 'huggingfacecache'
+        mountOptions: 'mfsymlinks'
+      }
+    ]
     secrets: concat(keyvalueSecrets, keyvaultIdentitySecrets)
+    workloadProfileName: 'GPU-NC24-A100'
     containers: [
       {
-        image: 'ghcr.io/azure-samples/swiss-llm-quickstart:latest'
-        name: 'main'
-        env: environmentVariables
+        name: 'apertus-vllm'
+        image: fetchLatestImage.outputs.?containers[?0].?image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+        env: [
+          {
+            name: 'HUGGING_FACE_HUB_TOKEN'
+            secretRef: 'hugging-face-hub-token'
+          }
+        ]
         resources: {
-          cpu: json('1.0')
-          memory: '2.0Gi'
+          cpu: 12
+          memory: '64Gi'
+        }
+        volumeMounts: [
+          {
+            volumeName: 'huggingfacecache'
+            mountPath: '/root/.cache/huggingface'
+            
+          }
+        ]
+      }
+      {
+        name: 'apertus-ingress'
+        image: fetchLatestImage.outputs.?containers[?1].?image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+        resources: {
+          cpu: json('0.5')
+          memory: '0.5Gi'
         }
       }
     ]

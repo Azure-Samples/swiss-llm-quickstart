@@ -45,6 +45,16 @@ param containerAppsEnvironmentName string
 @description('The ')
 param logAnalyticsWorkspaceResourceId string
 
+@description('Name of the storage account to use for the container apps environment')
+param storageAccountName string
+
+@description('True if the container app has already been deployed')
+param exists bool
+
+@description('Hugging Face Hub Token to access private models')
+@secure()
+param huggingFaceHubToken string = ''
+
 /* -------------------------------- Frontend -------------------------------- */
 
 @maxLength(32)
@@ -61,14 +71,15 @@ resource appIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-3
   name: appIdentityName
 }
 
-module containerRegistry 'br/public:avm/res/container-registry/registry:0.9.1' = {
+module containerRegistry 'br/public:avm/res/container-registry/registry:0.9.3' = {
   name: '${deployment().name}-containerRegistry'
   params: {
     name: containerRegistryName
     location: location
     tags: tags
-    acrSku: 'Standard'
+    acrSku: 'Premium'
     acrAdminUserEnabled: true
+    exportPolicyStatus: 'enabled'
     roleAssignments: [
       {
         roleDefinitionIdOrName: 'AcrPull'
@@ -103,11 +114,11 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.12.1' = {
         principalId: azurePrincipalId
       }
     ]
-    secrets: useAuthentication && authClientSecret != ''
+    secrets: huggingFaceHubToken != ''
       ? [
           {
-            name: authClientSecretName
-            value: authClientSecret
+            name: 'hugging-face-hub-token'
+            value: huggingFaceHubToken
           }
         ]
       : []
@@ -124,6 +135,26 @@ module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.10.
     daprAIConnectionString: appInsightsConnectionString
     zoneRedundant: false
     publicNetworkAccess: 'Enabled'
+    workloadProfiles: [
+      {
+        workloadProfileType: 'Consumption'
+        name: 'Consumption'
+        enableFips: false
+      }
+      {
+        workloadProfileType: 'Consumption-GPU-NC24-A100'
+        name: 'GPU-NC24-A100'
+        enableFips: false
+      }
+    ]
+    storages: [
+      {
+        accessMode: 'ReadWrite'
+        kind: 'SMB'
+        storageAccountName: storageAccountName
+        shareName: 'huggingfacecache'
+      }
+    ]
   }
 }
 
@@ -134,6 +165,7 @@ module frontendApp 'app/container-apps.bicep' = {
   scope: resourceGroup()
   params: {
     name: frontendContainerAppName
+    exists: exists
     tags: tags
     identityId: appIdentity.id
     containerAppsEnvironmentName: containerAppsEnvironment.outputs.name
@@ -151,6 +183,9 @@ module frontendApp 'app/container-apps.bicep' = {
 
       // Required for the frontend app to ask for a token for the backend app
       AZURE_CLIENT_APP_ID: authClientAppId
+    }
+    secrets: {
+      'hugging-face-hub-token': 'keyvaultref:${keyVault.outputs.uri}secrets/hugging-face-hub-token'
     }
     keyvaultIdentities: useAuthentication
       ? {

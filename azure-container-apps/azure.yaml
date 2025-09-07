@@ -6,6 +6,20 @@ infra:
   path: infra
   module: main
 
+hooks:
+  postprovision:
+    posix:
+      shell: sh
+      run: ./infra/hooks/postprovision.sh
+      interactive: true
+      continueOnError: false
+  postdeploy:
+    posix:
+      shell: sh
+      run: ./infra/hooks/postprovision.sh
+      interactive: true
+      continueOnError: false
+
 resources:
   swiss-llm-aca:
     type: host.containerapp

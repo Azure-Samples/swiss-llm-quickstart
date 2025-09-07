@@ -79,6 +79,13 @@ cd swiss-llm-quickstart/azure-container-apps
 
 #### Deploy the Infrastructure
 
+Quick deploy:
+
+```bash
+azd env set HUGGING_FACE_HUB_TOKEN hf_your_token_here
+azd up 
+```
+
 ## Test the Model
 
 ## Clean Up

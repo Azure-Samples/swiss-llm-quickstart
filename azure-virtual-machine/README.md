@@ -14,8 +14,7 @@ Find other deployment options [here](../README.md)
 
 ## Getting Started
 
-We will use the `Standard_NC24ads_A100_v4` SKU in Azure to host the model.
-This SKU is suitable for both APERTUS 8B and 70B.
+For the APERTUS 8B, we will use the `Standard_NC24ads_A100_v4` SKU in Azure.
 
 | Component | Specification |
 |---|---|
@@ -29,10 +28,24 @@ This SKU is suitable for both APERTUS 8B and 70B.
 | NVMe local storage | Up to 960 GiB (series) |
 | Network bandwidth | Nominal: ~20,000 Mbps (20 Gbps); series supports up to 80,000 Mbps (80 Gbps) |
 | NICs | 2 (series range: 2–8) |
-| Typical workloads | Training and batch inference for large AI models, GPU-accelerated analytics, HPC |
 
 
-This SKU is available only on a subset of Azure Regions. 
+For the APERTUS 70B, we will use the `Standard_NC48ads_A100_v4` SKU in Azure.
+
+| Component | Specification |
+|---|---|
+| Series | NC_A100_v4 |
+| vCPUs | 48 |
+| CPU | AMD EPYC 7V13 (Milan) [x86-64] |
+| System memory (RAM) | 440 GiB |
+| GPUs | 2 × NVIDIA A100 PCIe |
+| GPU memory | 2 x 80 GB |
+| Local temporary disk | 64 GiB (per-size; series range: 64–256 GiB) |
+| NVMe local storage | Up to 960 GiB (series) |
+| Network bandwidth | Nominal: ~20,000 Mbps (20 Gbps); series supports up to 80,000 Mbps (80 Gbps) |
+| NICs | 2 (series range: 2–8) |
+
+These SKUs are available only on a subset of Azure Regions. 
 
 Please check the availability on the [**Product Availability by Region**](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/table) page.
 
@@ -189,3 +202,42 @@ However, you can try the [Azure pricing calculator](https://azure.com/e/e3490de2
 - [Azure N-series GPU driver setup for Linux - Azure Virtual Machines | Microsoft Learn](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/n-series-driver-setup#ubuntu)
 - [Swiss-ai/Apertus-8B-Instruct-2509 · Hugging Face](https://huggingface.co/swiss-ai/Apertus-8B-Instruct-2509)
 - [PyTorch Get Started](https://pytorch.org/get-started/locally/#windows-pip)
+
+
+TO ADD
+
+pip install git+https://github.com/vllm-project/vllm.git@main 
+pip install git+https://github.com/huggingface/transformers.git@main
+pip install git+https://github.com/nickjbrowning/XIELU
+pip install flashinfer-python
+
+
+sudo apt install libpython3.10-dev
+
+To speed up the download 
+
+pip install -U huggingface_hub hf_transfer
+
+export HF_HUB_ENABLE_HF_TRANSFER=1
+export TORCH_CUDA_ARCH_LIST="8.0;8.6"
+
+vllm serve swiss-ai/Apertus-8B-Instruct-2509 \
+  --load-format auto \
+  --gpu-memory-utilization 0.90 \
+  --tensor-parallel-size 2 \
+  --dtype auto \
+  --ignore-patterns "original/*/" \
+  --enforce-eager
+
+Test the model
+
+curl http://localhost:8000/v1/chat/completions \
+-H "Content-Type: application/json" \
+-d '{
+    "model": "swiss-ai/Apertus-8B-Instruct-2509",
+    "messages": [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Who won the world series in 2020?"}
+    ]
+}'
+

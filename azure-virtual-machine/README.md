@@ -14,7 +14,7 @@ Find other deployment options [here](../README.md)
 
 ## Getting Started
 
-For the APERTUS 8B, we will use the `Standard_NC24ads_A100_v4` SKU in Azure.
+For the **APERTUS 8B**, we will use the `Standard_NC24ads_A100_v4` SKU in Azure.
 
 | Component | Specification |
 |---|---|
@@ -30,7 +30,7 @@ For the APERTUS 8B, we will use the `Standard_NC24ads_A100_v4` SKU in Azure.
 | NICs | 2 (series range: 2–8) |
 
 
-For the APERTUS 70B, we will use the `Standard_NC48ads_A100_v4` SKU in Azure.
+For the **APERTUS 70B**, we will use the `Standard_NC48ads_A100_v4` SKU in Azure.
 
 | Component | Specification |
 |---|---|
@@ -41,7 +41,7 @@ For the APERTUS 70B, we will use the `Standard_NC48ads_A100_v4` SKU in Azure.
 | GPUs | 2 × NVIDIA A100 PCIe |
 | GPU memory | 2 x 80 GB |
 | Local temporary disk | 64 GiB (per-size; series range: 64–256 GiB) |
-| NVMe local storage | Up to 960 GiB (series) |
+| NVMe local storage | Up to 1920 GiB (series) |
 | Network bandwidth | Nominal: ~20,000 Mbps (20 Gbps); series supports up to 80,000 Mbps (80 Gbps) |
 | NICs | 2 (series range: 2–8) |
 
@@ -74,7 +74,7 @@ az vm list-usage --location "${LOCATION}" --query "[?name.value=='StandardNCADSA
 
 ![Azure VM Quota Result](../assets/images/azure-virtual-machine-quota.png)
 
-Check that the `Limit` value is at least **24** for `Standard_NC24ads_A100_v4`.
+Check that the `Limit` value is at least **24** for `Standard_NC24ads_A100_v4` for APERTUS 8B and at least **48** for APERTUS 70B
 
 #### Clone the repository
 
@@ -83,16 +83,27 @@ git clone https://github.com/Azure-Samples/swiss-llm-quickstart
 cd swiss-llm-quickstart/azure-virtual-machine
 ```
 
-#### Deploy the virtual machine
+#### Deploy the Virtual Machine in Azure
+
+Based on the model you would like to install, you can run **one** of the following scripts
+
+for [Apertus-8B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-8B-Instruct-2509)
 
 ```bash
 ./deploy.sh
 ```
 
+for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)
+
+```bash
+./deploy_NC48.sh
+```
+
+
 ## Virtual Machine Installation
 
 You should now be able to access the virtual machine with the SSH command 
-displayed after executing `./deploy.sh`:
+displayed after executing the deploy script:
 
 ```bash
 ssh azureuser@__public_ip_address__
@@ -109,24 +120,28 @@ The following script will:
 4) Update PATH
 5) Reboot the VM
 
-
 ```bash
 sudo apt update && sudo apt install -y ubuntu-drivers-common
 sudo ubuntu-drivers install
-
 wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
 sudo apt install -y ./cuda-keyring_1.1-1_all.deb
+rm -f ./cuda-keyring_1.1-1_all.deb
 sudo apt update
-sudo apt install -y cuda-toolkit-12-9
+sudo apt install -y cuda-toolkit-12-8
+sudo apt install libpython3.10-dev
 
 cat >> ~/.bashrc <<'EOF'
 export PATH=/usr/local/cuda/bin${PATH:+:${PATH}}
 export LD_LIBRARY_PATH=/usr/local/cuda/lib64\${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 export CUDA_HOME=/usr/local/cuda/
+export HF_HUB_ENABLE_HF_TRANSFER=1
+export TORCH_CUDA_ARCH_LIST="8.0;8.6"
 EOF
 
 sudo reboot
 ```
+
+### Prepare the Python Environment
 
 Log in again into the VM and execute the following commands to prepare the python environment:
 
@@ -139,42 +154,98 @@ python3 -m venv .venv
 Install `PyTorch`:
 
 ```bash
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu129
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 ```
 
 Install `transformers` and HuggingFace CLI:
 
 ```bash
-pip install -U transformers
+pip install git+https://github.com/vllm-project/vllm.git@main
+pip install git+https://github.com/huggingface/transformers.git@main
+pip install git+https://github.com/nickjbrowning/XIELU
 pip install -U "huggingface_hub[cli]"
 pip install -U rich
+pip install -U flashinfer-python
+pip install -U huggingface_hub hf_transfer
 ```
 
 Log in into Hugging Face Hub and install the model.
 
-In this example, we are using [Apertus-8B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-8B-Instruct-2509)
+for [Apertus-8B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-8B-Instruct-2509)
 
 ```bash
 hf auth login
 hf download swiss-ai/Apertus-8B-Instruct-2509
 ```
 
+for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)
+
+```bash
+hf auth login
+hf download swiss-ai/Apertus-70B-Instruct-2509
+```
+
+## Run the model using vLLM
+
+We will use [vLLM](https://docs.vllm.ai/en/v0.7.3/index.html) to run the model.
+
+From the terminal (with the virtual environment actvated), run the following command:
+
+for [Apertus-8B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-8B-Instruct-2509)
+
+```bash
+vllm serve swiss-ai/Apertus-8B-Instruct-2509 \
+  --load-format auto \
+  --gpu-memory-utilization 0.90 \
+  --dtype auto \
+  --ignore-patterns "original/*/" \
+  --enforce-eager
+```
+
+for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)
+
+```bash
+vllm serve swiss-ai/Apertus-70B-Instruct-2509 \
+  --load-format auto \
+  --gpu-memory-utilization 0.98 \
+  --tensor-parallel-size 2 \
+  --dtype auto \
+  --ignore-patterns "original/*/" \
+  --enforce-eager
+```
 
 ## Test the Model
 
-To test the model, use the provided `run.py`.
+To test the model, you need to open an additional SSH terminal on the VM (the first one is used to keep the FastAPI server up and running) and run the following command:
 
-From the root of the cloned repository (from your local machine), you need to copy the `run.py` script on the Virtual Machine:
+for [Apertus-8B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-8B-Instruct-2509)
 
 ```bash
-scp run.py azureuser@__public_ip_address__:
+curl http://localhost:8000/v1/chat/completions \
+-H "Content-Type: application/json" \
+-d '{
+    "model": "swiss-ai/Apertus-8B-Instruct-2509",
+    "messages": [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Give a simple explanation of what gravity is for a high school level physics course with a few typical formulas. Use lots of emojis and do it in French, Swiss German, Italian and Romansh."}
+    ]
+}'
 ```
 
-Now, Log in into the virtual machine again and run:
+for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)
 
 ```bash
-. .venv/bin/activate
-python run.py
+curl http://localhost:8000/v1/chat/completions \
+-H "Content-Type: application/json" \
+-d '{
+    "model": "swiss-ai/Apertus-70B-Instruct-2509",
+    "messages": [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Give a simple explanation of what gravity is for a high school level physics course with a few typical formulas. Use lots of emojis and do it in French, Swiss German, Italian and Romansh."}
+    ]
+}'
+```
+
 ```
 If the installation if successfully completed, you should see something similar to this:
 
@@ -200,44 +271,7 @@ However, you can try the [Azure pricing calculator](https://azure.com/e/e3490de2
 ## References
 
 - [Azure N-series GPU driver setup for Linux - Azure Virtual Machines | Microsoft Learn](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/n-series-driver-setup#ubuntu)
+- [vLLM](https://docs.vllm.ai/en/v0.7.3/index.html)
 - [Swiss-ai/Apertus-8B-Instruct-2509 · Hugging Face](https://huggingface.co/swiss-ai/Apertus-8B-Instruct-2509)
+- [Swiss-ai/Apertus-70B-Instruct-2509 · Hugging Face](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)
 - [PyTorch Get Started](https://pytorch.org/get-started/locally/#windows-pip)
-
-
-TO ADD
-
-pip install git+https://github.com/vllm-project/vllm.git@main 
-pip install git+https://github.com/huggingface/transformers.git@main
-pip install git+https://github.com/nickjbrowning/XIELU
-pip install flashinfer-python
-
-
-sudo apt install libpython3.10-dev
-
-To speed up the download 
-
-pip install -U huggingface_hub hf_transfer
-
-export HF_HUB_ENABLE_HF_TRANSFER=1
-export TORCH_CUDA_ARCH_LIST="8.0;8.6"
-
-vllm serve swiss-ai/Apertus-8B-Instruct-2509 \
-  --load-format auto \
-  --gpu-memory-utilization 0.90 \
-  --tensor-parallel-size 2 \
-  --dtype auto \
-  --ignore-patterns "original/*/" \
-  --enforce-eager
-
-Test the model
-
-curl http://localhost:8000/v1/chat/completions \
--H "Content-Type: application/json" \
--d '{
-    "model": "swiss-ai/Apertus-8B-Instruct-2509",
-    "messages": [
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Who won the world series in 2020?"}
-    ]
-}'
-

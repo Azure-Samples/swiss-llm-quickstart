@@ -176,6 +176,7 @@ uv add "huggingface_hub[cli]"
 uv add rich
 uv add flashinfer-python
 uv add huggingface_hub hf_transfer
+uv add fastsafetensors
 ```
 
 Activate
@@ -209,7 +210,8 @@ uv run vllm serve swiss-ai/Apertus-8B-Instruct-2509 \
   --gpu-memory-utilization 0.90 \
   --dtype auto \
   --ignore-patterns "original/*/" \
-  --enforce-eager
+  --enforce-eager \
+  --load-format fastsafetensors
 ```
 
 for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)
@@ -221,7 +223,8 @@ uv run vllm serve swiss-ai/Apertus-70B-Instruct-2509 \
   --tensor-parallel-size 2 \
   --dtype auto \
   --ignore-patterns "original/*/" \
-  --enforce-eager
+  --enforce-eager \
+  --load-format fastsafetensors
 ```
 
 ## Test the Model

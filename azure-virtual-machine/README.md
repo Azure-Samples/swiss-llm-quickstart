@@ -143,38 +143,48 @@ sudo reboot
 
 ### Prepare the Python Environment
 
-Log in again into the VM and execute the following commands to prepare the python environment:
+Log in again into the VM and execute the following commands to install UV and prepare a python environment:
 
 ```bash
-sudo apt install python3-venv
-python3 -m venv .venv
-. .venv/bin/activate
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv init
 ```
 
 Install `PyTorch`:
 
 ```bash
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+cat >> pyproject.toml <<'EOF'
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+EOF
+uv add torch torchvision
+uv add git+https://github.com/vllm-project/vllm.git@main
+uv add git+https://github.com/huggingface/transformers.git@main
+uv add git+https://github.com/nickjbrowning/XIELU
+
+uv add "huggingface_hub[cli]"
+uv add rich
+uv add flashinfer-python
+uv add huggingface_hub hf_transfer
 ```
 
-Install `transformers` and HuggingFace CLI:
-
-```bash
-pip install git+https://github.com/vllm-project/vllm.git@main
-pip install git+https://github.com/huggingface/transformers.git@main
-pip install git+https://github.com/nickjbrowning/XIELU
-pip install -U "huggingface_hub[cli]"
-pip install -U rich
-pip install -U flashinfer-python
-pip install -U huggingface_hub hf_transfer
-```
-
+Activate
 Log in into Hugging Face Hub and install the model.
 
 for [Apertus-8B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-8B-Instruct-2509)
 
 ```bash
-hf auth login
+uv run hf auth login
 hf download swiss-ai/Apertus-8B-Instruct-2509
 ```
 
@@ -194,7 +204,7 @@ From the terminal (with the virtual environment actvated), run the following com
 for [Apertus-8B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-8B-Instruct-2509)
 
 ```bash
-vllm serve swiss-ai/Apertus-8B-Instruct-2509 \
+uv run vllm serve swiss-ai/Apertus-8B-Instruct-2509 \
   --load-format auto \
   --gpu-memory-utilization 0.90 \
   --dtype auto \
@@ -205,7 +215,7 @@ vllm serve swiss-ai/Apertus-8B-Instruct-2509 \
 for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)
 
 ```bash
-vllm serve swiss-ai/Apertus-70B-Instruct-2509 \
+uv run vllm serve swiss-ai/Apertus-70B-Instruct-2509 \
   --load-format auto \
   --gpu-memory-utilization 0.98 \
   --tensor-parallel-size 2 \

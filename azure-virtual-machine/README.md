@@ -188,11 +188,14 @@ torchvision = [
 ]
 EOF
 uv add torch torchvision
-uv add vllm transformers
-uv add "huggingface_hub[cli]" hf_transfer fastsafetensors rich
-# Optional: acceleration libraries (uncomment if needed)
-# uv add flashinfer-python
-# uv add xformers
+uv add git+https://github.com/vllm-project/vllm
+uv add git+https://github.com/huggingface/transformers
+uv add git+https://github.com/nickjbrowning/XIELU
+uv add "huggingface_hub[cli]"
+uv add rich
+uv add flashinfer-python
+uv add huggingface_hub hf_transfer
+uv add fastsafetensors
 ```
 
 Log in to Hugging Face Hub and install the model.

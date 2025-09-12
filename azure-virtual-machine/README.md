@@ -302,6 +302,12 @@ However, you can try the [Azure pricing calculator](https://azure.com/e/e3490de2
 
 ⚠️ To avoid unnecessary costs, remember to take down your resources if it's no longer in use.
 
+You can reduce VM cost by deallocating the VM when not in use. This will stop the VM and you will not be charged for compute resources, but you will still be charged for storage.
+
+```bash
+az vm deallocate -g MyResourceGroup -n MyVmName
+```
+
 ## References
 
 - [Azure N-series GPU driver setup for Linux - Azure Virtual Machines | Microsoft Learn](https://learn.microsoft.com/en-us/azure/virtual-machines/linux/n-series-driver-setup#ubuntu)

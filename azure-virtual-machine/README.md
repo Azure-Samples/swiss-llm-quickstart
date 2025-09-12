@@ -209,6 +209,7 @@ for [Apertus-8B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-8B-Instru
 uv run vllm serve swiss-ai/Apertus-8B-Instruct-2509 \
   --load-format fastsafetensors \
   --gpu-memory-utilization 0.95 \
+  --max-model-len 4096 \
   --max-num-seqs 512 \
   --swap-space 32 \
   --dtype auto \

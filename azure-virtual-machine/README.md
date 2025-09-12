@@ -128,13 +128,15 @@ sudo apt install -y ./cuda-keyring_1.1-1_all.deb
 rm -f ./cuda-keyring_1.1-1_all.deb
 sudo apt update
 sudo apt install -y cuda-toolkit-12-8
-sudo apt install libpython3.10-dev
+sudo apt install -y libpython3.10-dev
 
 cat >> ~/.bashrc <<'EOF'
 export PATH=/usr/local/cuda/bin${PATH:+:${PATH}}
 export LD_LIBRARY_PATH=/usr/local/cuda/lib64\${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 export CUDA_HOME=/usr/local/cuda/
 export HF_HUB_ENABLE_HF_TRANSFER=1
+export TORCHDYNAMO_DISABLE=1
+export TORCH_LOGS="+dynamo"
 export TORCH_CUDA_ARCH_LIST="8.0;8.6"
 EOF
 
@@ -147,6 +149,7 @@ Log in again into the VM and execute the following commands to install UV and pr
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
+source ~/.bashrc
 uv init
 ```
 
@@ -171,7 +174,6 @@ uv add torch torchvision
 uv add git+https://github.com/vllm-project/vllm.git@main
 uv add git+https://github.com/huggingface/transformers.git@main
 uv add git+https://github.com/nickjbrowning/XIELU
-
 uv add "huggingface_hub[cli]"
 uv add rich
 uv add flashinfer-python
@@ -186,45 +188,49 @@ for [Apertus-8B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-8B-Instru
 
 ```bash
 uv run hf auth login
-hf download swiss-ai/Apertus-8B-Instruct-2509
+uv run hf download swiss-ai/Apertus-8B-Instruct-2509
 ```
 
 for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)
 
 ```bash
-hf auth login
-hf download swiss-ai/Apertus-70B-Instruct-2509
+uv run hf auth login
+uv run hf download swiss-ai/Apertus-70B-Instruct-2509
 ```
 
 ## Run the model using vLLM
 
 We will use [vLLM](https://docs.vllm.ai/en/v0.7.3/index.html) to run the model.
 
-From the terminal (with the virtual environment actvated), run the following command:
 
 for [Apertus-8B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-8B-Instruct-2509)
 
 ```bash
 uv run vllm serve swiss-ai/Apertus-8B-Instruct-2509 \
-  --load-format auto \
-  --gpu-memory-utilization 0.90 \
+  --load-format fastsafetensors \
+  --gpu-memory-utilization 0.95 \
+  --max-num-seqs 512 \
+  --swap-space 32 \
   --dtype auto \
   --ignore-patterns "original/*/" \
-  --enforce-eager \
-  --load-format fastsafetensors
+  --safetensors-load-strategy eager \
+  --enforce-eager 
 ```
 
 for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)
 
 ```bash
 uv run vllm serve swiss-ai/Apertus-70B-Instruct-2509 \
-  --load-format auto \
-  --gpu-memory-utilization 0.98 \
+  --load-format fastsafetensors \
+  --max-model-len 32768 \
+  --max-num-seqs 512 \
+  --swap-space 128 \
+  --kv-cache-dtype fp8 \
+  --gpu-memory-utilization 0.95 \
   --tensor-parallel-size 2 \
   --dtype auto \
   --ignore-patterns "original/*/" \
-  --enforce-eager \
-  --load-format fastsafetensors
+  --enforce-eager
 ```
 
 ## Test the Model

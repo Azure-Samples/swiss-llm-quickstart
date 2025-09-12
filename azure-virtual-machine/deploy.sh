@@ -20,6 +20,7 @@ az vm create \
     --admin-username "${AZURE_ADMIN_USER:-azureuser}" \
     --public-ip-sku Standard \
     --os-disk-size-gb "${AZURE_OS_DISK_SIZE_GB}" \
+    --storage-sku Premium_LRS \
     --generate-ssh-keys \
     --image "$IMAGE" \
     --priority Spot \

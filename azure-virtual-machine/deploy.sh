@@ -3,7 +3,8 @@ set -euo pipefail
 [[ ${DEBUG-} =~ ^1|yes|true$ ]] && set -o xtrace
 
 LABEL=${LABEL:-swiss-llm-001}
-LOCATION="${AZURE_RG:-swedencentral}"
+# Keep LOCATION consistent with README; default to the example region
+LOCATION="${LOCATION:-switzerlandnorth}"
 
 RESOURCE_GROUP="${RESOURCE_GROUP:-rg-${LABEL}}"
 AZURE_VM_NAME="${AZURE_VM_NAME:-vmswissllma100}"

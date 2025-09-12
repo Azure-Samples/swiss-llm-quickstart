@@ -49,7 +49,17 @@ These SKUs are available only on a subset of Azure Regions.
 
 Please check the availability on the [**Product Availability by Region**](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/table) page.
 
-### Setup your environment
+### Prerequisites
+
+Before you begin:
+
+- Azure CLI installed and logged in: `az login`
+- Set your subscription: `az account set --subscription <SUBSCRIPTION_ID>`
+- Sufficient quota for the selected GPU SKUs in your region
+- A Hugging Face account and token (for model download)
+- SSH key available (the deploy script can generate one if missing)
+
+### Set up your environment
 
 #### Environment Variables
 
@@ -64,7 +74,7 @@ in this example we used **Switzerland North** Datacenter.
 export LABEL=swiss-llm-001
 export LOCATION=switzerlandnorth
 ```
-#### Check CPU Quota for the VM
+#### Check GPU quota for the VM
 
 Based on the location you choose, you can check the current quota with the following:
 
@@ -123,7 +133,7 @@ The following script will:
 ```bash
 sudo apt update && sudo apt install -y ubuntu-drivers-common
 sudo ubuntu-drivers install
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
 sudo apt install -y ./cuda-keyring_1.1-1_all.deb
 rm -f ./cuda-keyring_1.1-1_all.deb
 sudo apt update
@@ -143,9 +153,16 @@ EOF
 sudo reboot
 ```
 
+After the reboot, verify the driver and toolkit installation:
+
+```bash
+nvidia-smi
+nvcc --version || echo "nvcc not found; ensure CUDA toolkit installed"
+```
+
 ### Prepare the Python Environment
 
-Log in again into the VM and execute the following commands to install UV and prepare a python environment:
+Log in again into the VM and execute the following commands to install `uv` and prepare a Python environment:
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -171,18 +188,14 @@ torchvision = [
 ]
 EOF
 uv add torch torchvision
-uv add git+https://github.com/vllm-project/vllm.git@main
-uv add git+https://github.com/huggingface/transformers.git@main
-uv add git+https://github.com/nickjbrowning/XIELU
-uv add "huggingface_hub[cli]"
-uv add rich
-uv add flashinfer-python
-uv add huggingface_hub hf_transfer
-uv add fastsafetensors
+uv add vllm transformers
+uv add "huggingface_hub[cli]" hf_transfer fastsafetensors rich
+# Optional: acceleration libraries (uncomment if needed)
+# uv add flashinfer-python
+# uv add xformers
 ```
 
-Activate
-Log in into Hugging Face Hub and install the model.
+Log in to Hugging Face Hub and install the model.
 
 for [Apertus-8B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-8B-Instruct-2509)
 
@@ -215,7 +228,8 @@ uv run vllm serve swiss-ai/Apertus-8B-Instruct-2509 \
   --dtype auto \
   --ignore-patterns "original/*/" \
   --safetensors-load-strategy eager \
-  --enforce-eager 
+  --enforce-eager \
+  --host 127.0.0.1
 ```
 
 for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)
@@ -231,12 +245,13 @@ uv run vllm serve swiss-ai/Apertus-70B-Instruct-2509 \
   --tensor-parallel-size 2 \
   --dtype auto \
   --ignore-patterns "original/*/" \
-  --enforce-eager
+  --enforce-eager \
+  --host 127.0.0.1
 ```
 
 ## Test the Model
 
-To test the model, you need to open an additional SSH terminal on the VM (the first one is used to keep the FastAPI server up and running) and run the following command:
+To test the model, open an additional SSH terminal on the VM (keep the first one running the server) and run the following command. If you prefer to call from your local machine, you can use SSH port forwarding: `ssh -L 8000:localhost:8000 azureuser@<ip>`
 
 for [Apertus-8B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-8B-Instruct-2509)
 
@@ -266,17 +281,16 @@ curl http://localhost:8000/v1/chat/completions \
 }'
 ```
 
-```
-If the installation if successfully completed, you should see something similar to this:
+If the installation completes successfully, you should see something similar to this:
 
 <img src="../assets/images/azure-virtual-machine-test.png" alt="Test Result" width="auto"/>
 
 ## Clean Up
 
-To clean up all the resources created by this sample just delete the resource group.
+To clean up all the resources created by this sample, delete the resource group used during deployment.
 
 ```bash
-az group delete --name MyResourceGroup --no-wait
+az group delete --name "rg-${LABEL}" --yes --no-wait
 ```
 
 ## Cost Estimation
@@ -294,4 +308,9 @@ However, you can try the [Azure pricing calculator](https://azure.com/e/e3490de2
 - [vLLM](https://docs.vllm.ai/en/v0.7.3/index.html)
 - [Swiss-ai/Apertus-8B-Instruct-2509 · Hugging Face](https://huggingface.co/swiss-ai/Apertus-8B-Instruct-2509)
 - [Swiss-ai/Apertus-70B-Instruct-2509 · Hugging Face](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)
-- [PyTorch Get Started](https://pytorch.org/get-started/locally/#windows-pip)
+- [PyTorch Get Started](https://pytorch.org/get-started/locally/)
+
+## Notes
+
+- Spot instances: The deploy scripts use Spot priority by default (`--priority Spot`). Spot VMs are lower-cost but can be evicted. For uninterrupted runs, switch to regular priority by removing that flag or setting `--priority Regular`.
+- Server lifetime: Consider running `vllm serve` inside `tmux` or `screen` to avoid interruption when the SSH session closes.

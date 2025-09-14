@@ -13,12 +13,12 @@ FROM nvidia/cuda:${CUDA_VERSION}-cudnn-devel-ubuntu${UBUNTU_VERSION} AS builder
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
+    CUDA_HOME=/usr/local/cuda \
+    TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0" \
     PATH=/opt/venv/bin:${PATH}
 
 # Choose versions via build args for easy overrides
 ARG TORCH_CUDA_CHANNEL=https://download.pytorch.org/whl/cu128
-ARG TRANSFORMERS_REPO=https://github.com/huggingface/transformers.git
-ARG TRANSFORMERS_REF=main
 
 # Base build layer: OS deps, venv, core wheels, utilities
 RUN set -eux; \
@@ -52,8 +52,7 @@ RUN set -eux; \
     pip install vllm transformers; \
     # Install XIELU for quantization support (must be installed after vllm and transformers)
     pip install git+https://github.com/nickjbrowning/XIELU; \
-    rm -rf /root/.cache /src
-
+    rm -rf /root/.cache
 
 ############################
 # Runtime

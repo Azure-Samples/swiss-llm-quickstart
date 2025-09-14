@@ -17,8 +17,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 # Choose versions via build args for easy overrides
 ARG TORCH_CUDA_CHANNEL=https://download.pytorch.org/whl/cu128
-ARG VLLM_REPO=https://github.com/vllm-project/vllm.git
-ARG VLLM_REF=main
 ARG TRANSFORMERS_REPO=https://github.com/huggingface/transformers.git
 ARG TRANSFORMERS_REF=main
 
@@ -50,11 +48,8 @@ RUN set -eux; \
 RUN set -eux; \
     # Ensure CUDA arch list is set during build of native extensions
     export TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0"; \
-    mkdir -p /src && cd /src; \
-    git clone --depth 1 --branch ${TRANSFORMERS_REF} ${TRANSFORMERS_REPO} transformers; \
-    git clone --depth 1 --branch ${VLLM_REF} ${VLLM_REPO} vllm; \
-    pip install /src/transformers; \
-    pip install /src/vllm; \
+    # Install vLLM and Transformes
+    pip install vllm transformers; \
     # Install XIELU for quantization support (must be installed after vllm and transformers)
     pip install git+https://github.com/nickjbrowning/XIELU; \
     rm -rf /root/.cache /src

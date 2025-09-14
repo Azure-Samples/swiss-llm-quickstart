@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Starting vLLM server for model: ${MODEL_ID}"
+
+ARGS=(
+  "serve" "${MODEL_ID}"
+  "--load-format" "fastsafetensors"
+  "--safetensors-load-strategy" "eager"
+  "--ignore-patterns" "original/*/"
+  "--enforce-eager"
+  "--host" "${HOST:-0.0.0.0}"
+  "--port" "${PORT:-8000}"
+  "--gpu-memory-utilization" "${GPU_MEMORY_UTILIZATION:-0.95}"
+  "--max-model-len" "${MAX_MODEL_LEN:-4096}"
+  "--max-num-seqs" "${MAX_NUM_SEQS:-512}"
+  "--swap-space" "${SWAP_SPACE:-32}"
+  "--dtype" "auto"
+)
+
+# Append optional tensor parallel size if provided
+if [[ -n "${TENSOR_PARALLEL_SIZE:-}" ]]; then
+  ARGS+=("--tensor-parallel-size" "${TENSOR_PARALLEL_SIZE}")
+fi
+
+# Append optional KV cache dtype if provided (e.g., fp8)
+if [[ -n "${KV_CACHE_DTYPE:-}" ]]; then
+  ARGS+=("--kv-cache-dtype" "${KV_CACHE_DTYPE}")
+fi
+
+exec vllm "${ARGS[@]}"
+

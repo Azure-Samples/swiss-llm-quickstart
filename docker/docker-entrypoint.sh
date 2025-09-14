@@ -3,6 +3,12 @@ set -euo pipefail
 
 echo "Starting vLLM server for model: ${MODEL_ID}"
 
+# Authenticate with Hugging Face if token is provided
+if [[ -n "${HF_TOKEN:-}" ]]; then
+    echo "Authenticating with Hugging Face..."
+    hf auth login --token "${HF_TOKEN}"
+fi
+
 ARGS=(
   "serve" "${MODEL_ID}"
   "--load-format" "fastsafetensors"

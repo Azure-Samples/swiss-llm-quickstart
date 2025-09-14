@@ -14,6 +14,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
     CUDA_HOME=/usr/local/cuda \
+    TORCHDYNAMO_DISABLE=1 \
+    TORCH_LOGS=+dynamo \
+    LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH} \
+    # H100, A100, A10, L4 common SMs
     TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0" \
     PATH=/opt/venv/bin:${PATH}
 
@@ -46,8 +50,6 @@ RUN set -eux; \
 
 # Late layer: fetch and build from source (vllm, transformers)
 RUN set -eux; \
-    # Ensure CUDA arch list is set during build of native extensions
-    export TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0"; \
     # Install vLLM and Transformes
     pip install vllm transformers; \
     # Install XIELU for quantization support (must be installed after vllm and transformers)
@@ -66,14 +68,23 @@ ENV DEBIAN_FRONTEND=noninteractive \
     TORCHDYNAMO_DISABLE=1 \
     TORCH_LOGS=+dynamo \
     CUDA_HOME=/usr/local/cuda \
+    LD_LIBRARY_PATH=/usr/local/cuda/lib64:${LD_LIBRARY_PATH} \
     NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=compute,utility \
-    # H100, A100, A10, L4 common SMs; adjust as needed
+    # H100, A100, A10, L4 common SMs
     TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0"
 
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates bash tini; \
+    # Install Python so the copied venv's python symlinks resolve correctly
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        bash \
+        tini \
+        python3 \
+        python-is-python3 \
+        git; \
+    # Create a non-root user to run the app
     useradd -m -u 10001 appuser; \
     mkdir -p /workspace; \
     chown appuser:appuser /workspace; \
@@ -81,6 +92,8 @@ RUN set -eux; \
 
 # Copy the prebuilt Python environment
 COPY --from=builder /opt/venv /opt/venv
+
+RUN chown -R appuser:appuser /opt/venv
 
 # Default server configuration via env vars
 ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \
@@ -93,7 +106,9 @@ ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \
     # Optional: set for multi-GPU sharding; e.g., 2 for 70B on 2x A100 80GB
     TENSOR_PARALLEL_SIZE="" \
     # Optional KV cache dtype (e.g., fp8 for large models)
-    KV_CACHE_DTYPE=""
+    KV_CACHE_DTYPE="" \
+    # Hugging Face token for authentication
+    HF_TOKEN=""
 
 COPY --chmod=0755 docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 

@@ -15,22 +15,17 @@ RUN set -eux; \
     # Install Python so the copied venv's python symlinks resolve correctly
     apt-get install -y --no-install-recommends \
         tini \
-        python3-pip \
-        python-is-python3 \
-        git; \
+        python-is-python3; \
     # Create a non-root user to run the app
     useradd -m -u 10001 appuser; \
     mkdir -p /workspace; \
     chown appuser:appuser /workspace; \
     rm -rf /var/lib/apt/lists/*
 
-RUN set -eux; \
-    # Install Hugging Face utils, fastsafetensors, rich, flashinfer
-    pip install "huggingface_hub[cli]" hf_transfer fastsafetensors flashinfer-python; \
-    # Install XIELU for quantization support (must be installed after vllm and transformers)
-    pip install git+https://github.com/nickjbrowning/XIELU; \
-    rm -rf /root/.cache
-
+RUN --mount=type=cache,target=/root/.cache/uv \
+    # Install fastsafetensors, XIELU for quantization support (must be installed after vllm and transformers)
+    set -eux; \
+    uv pip install --system fastsafetensors git+https://github.com/nickjbrowning/XIELU;
 
 # Default server configuration via env vars
 ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \

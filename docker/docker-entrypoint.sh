@@ -15,12 +15,9 @@ ARGS=(
   "--safetensors-load-strategy" "eager"
   "--ignore-patterns" "original/*/"
   "--enforce-eager"
-  "--host" "${HOST:-0.0.0.0}"
-  "--port" "${PORT:-8000}"
-  "--gpu-memory-utilization" "${GPU_MEMORY_UTILIZATION:-0.95}"
+  "--gpu-memory-utilization" "${GPU_MEMORY_UTILIZATION:-0.90}"
   "--max-model-len" "${MAX_MODEL_LEN:-4096}"
   "--max-num-seqs" "${MAX_NUM_SEQS:-512}"
-  "--swap-space" "${SWAP_SPACE:-32}"
   "--dtype" "auto"
 )
 

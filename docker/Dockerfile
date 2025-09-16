@@ -38,9 +38,7 @@ ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \
     # Optional: set for multi-GPU sharding; e.g., 2 for 70B on 2x A100 80GB
     TENSOR_PARALLEL_SIZE="" \
     # Optional KV cache dtype (e.g., fp8 for large models)
-    KV_CACHE_DTYPE="" \
-    # Hugging Face token
-    HF_TOKEN=""
+    KV_CACHE_DTYPE=""
 
 COPY --chmod=0755 docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 

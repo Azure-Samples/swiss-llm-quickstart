@@ -31,10 +31,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \
     HOST=0.0.0.0 \
     PORT=8000 \
-    GPU_MEMORY_UTILIZATION=0.95 \
+    GPU_MEMORY_UTILIZATION=0.90 \
     MAX_MODEL_LEN=4096 \
     MAX_NUM_SEQS=512 \
-    SWAP_SPACE=32 \
     # Optional: set for multi-GPU sharding; e.g., 2 for 70B on 2x A100 80GB
     TENSOR_PARALLEL_SIZE="" \
     # Optional KV cache dtype (e.g., fp8 for large models)

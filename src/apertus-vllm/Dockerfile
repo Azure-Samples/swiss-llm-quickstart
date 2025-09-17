@@ -46,7 +46,7 @@ ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \
     SWAP_SPACE="" \
     CPU_OFFLOAD_GB=""
 
-COPY --chmod=0755 docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --chmod=0755 src/apertus-vllm/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 WORKDIR /workspace
 

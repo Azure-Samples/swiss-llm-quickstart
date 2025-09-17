@@ -231,8 +231,7 @@ uv run vllm serve swiss-ai/Apertus-8B-Instruct-2509 \
   --dtype auto \
   --ignore-patterns "original/*/" \
   --safetensors-load-strategy eager \
-  --enforce-eager \
-  --host 127.0.0.1
+  --enforce-eager
 ```
 
 for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)
@@ -248,8 +247,7 @@ uv run vllm serve swiss-ai/Apertus-70B-Instruct-2509 \
   --tensor-parallel-size 2 \
   --dtype auto \
   --ignore-patterns "original/*/" \
-  --enforce-eager \
-  --host 127.0.0.1
+  --enforce-eager
 ```
 
 ## Test the Model

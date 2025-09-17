@@ -2,6 +2,10 @@
 
 FROM vllm/vllm-openai:v0.10.2
 
+LABEL org.opencontainers.image.source=https://github.com/Azure-Samples/swiss-llm-quickstart
+LABEL org.opencontainers.image.description="Apertus vLLM backend for Swiss LLM Quickstart"
+LABEL org.opencontainers.image.licenses=MIT
+
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/workspace/hf-home \

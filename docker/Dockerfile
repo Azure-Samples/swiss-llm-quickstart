@@ -4,6 +4,7 @@ FROM vllm/vllm-openai:v0.10.2
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
+    HF_HOME=/workspace/hf-home
     HF_HUB_ENABLE_HF_TRANSFER=1 \
     TORCHDYNAMO_DISABLE=1 \
     TORCH_LOGS=+dynamo \
@@ -20,6 +21,7 @@ RUN set -eux; \
     useradd -m -u 10001 appuser; \
     mkdir -p /workspace; \
     chown appuser:appuser /workspace; \
+    mkdir -p /workspace/hf-home; \
     rm -rf /var/lib/apt/lists/*
 
 RUN --mount=type=cache,target=/root/.cache/uv \

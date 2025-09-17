@@ -33,13 +33,14 @@ fi
 
 # Append optional Swap Space if provided (e.g., 32)
 if [[ -n "${SWAP_SPACE:-}" ]]; then
-  ARGS+=("--kv-cache-dtype" "${SWAP_SPACE}")
+  ARGS+=("--swap-space" "${SWAP_SPACE}")
 fi
 
 # Append optional GPU Memory Offload if provided (e.g., 32)
 if [[ -n "${CPU_OFFLOAD_GB:-}" ]]; then
-  ARGS+=("--kv-cache-dtype" "${CPU_OFFLOAD_GB}")
+  ARGS+=("--cpu-offload-gb" "${CPU_OFFLOAD_GB}")
 fi
 
+echo "Launching: vllm ${ARGS[*]}"
 exec vllm "${ARGS[@]}"
 

@@ -10,7 +10,7 @@ docker run --gpus all -p 8000:8000 swiss-llm-vllm
 
 
 
- docker run --gpus all -p 8000:8000 -e HF_TOKEN=your_token_here swiss-llm-vllm -v ~/.cache/huggingface:/home/appuser/.cache/huggingface swiss-llm-vllm
+ docker run --gpus all -p 8000:8000 -e HF_TOKEN=your_token_here -v ~/.cache/huggingface:/home/appuser/workspace/hf-home apertus-vllm
 
 
  docker run --gpus all -it --rm --user root --entrypoint bash apertus-vllm

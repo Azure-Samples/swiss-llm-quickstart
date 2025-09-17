@@ -11,7 +11,7 @@ fi
 
 ARGS=(
   "serve" "${MODEL_ID}"
-  "--load-format" "fastsafetensors"
+  "--load-format" "${LOAD_FORMAT:-"safetensors"}"
   "--safetensors-load-strategy" "eager"
   "--ignore-patterns" "original/*/"
   "--enforce-eager"
@@ -29,6 +29,16 @@ fi
 # Append optional KV cache dtype if provided (e.g., fp8)
 if [[ -n "${KV_CACHE_DTYPE:-}" ]]; then
   ARGS+=("--kv-cache-dtype" "${KV_CACHE_DTYPE}")
+fi
+
+# Append optional Swap Space if provided (e.g., 32)
+if [[ -n "${SWAP_SPACE:-}" ]]; then
+  ARGS+=("--kv-cache-dtype" "${SWAP_SPACE}")
+fi
+
+# Append optional GPU Memory Offload if provided (e.g., 32)
+if [[ -n "${CPU_OFFLOAD_GB:-}" ]]; then
+  ARGS+=("--kv-cache-dtype" "${CPU_OFFLOAD_GB}")
 fi
 
 exec vllm "${ARGS[@]}"

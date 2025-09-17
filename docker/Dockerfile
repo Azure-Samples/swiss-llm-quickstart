@@ -29,15 +29,17 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Default server configuration via env vars
 ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \
-    HOST=0.0.0.0 \
-    PORT=8000 \
-    GPU_MEMORY_UTILIZATION=0.90 \
+    # Model file format: 'safetensors' (for no GDS support - Default) or 'fastsafetensor' (for GDS support)
+    LOAD_FORMAT="safetensors" \
+    GPU_MEMORY_UTILIZATION=0.95 \
     MAX_MODEL_LEN=4096 \
     MAX_NUM_SEQS=512 \
-    # Optional: set for multi-GPU sharding; e.g., 2 for 70B on 2x A100 80GB
+    # Multi-GPU sharding; 1 for single GPU (default) or >1 for multi-GPU
     TENSOR_PARALLEL_SIZE="" \
     # Optional KV cache dtype (e.g., fp8 for large models)
-    KV_CACHE_DTYPE=""
+    KV_CACHE_DTYPE="" \
+    SWAP_SPACE="" \
+    CPU_OFFLOAD_GB=""
 
 COPY --chmod=0755 docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 

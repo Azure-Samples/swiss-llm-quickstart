@@ -19,9 +19,8 @@ RUN set -eux; \
         python-is-python3; \
     # Create a non-root user to run the app
     useradd -m -u 10001 appuser; \
-    mkdir -p /workspace; \
-    chown appuser:appuser /workspace; \
     mkdir -p /workspace/hf-home; \
+    chown -R appuser:appuser /workspace; \
     rm -rf /var/lib/apt/lists/*
 
 RUN --mount=type=cache,target=/root/.cache/uv \

@@ -10,7 +10,7 @@ else
     printf "  \033[32m➜\033[0m Backend service does not exist, updating container app images...\n"
     az containerapp update --name "${AZURE_CONTAINER_APP_NAME}" --resource-group ${AZURE_RESOURCE_GROUP} \
         --container-name apertus-vllm \
-        --image "${AZURE_CONTAINER_REGISTRY_ENDPOINT}/azure-samples/swiss-llm-quickstart:latest" \
+        --image "${AZURE_CONTAINER_REGISTRY_ENDPOINT}/azure-samples/apertus-vllm:latest" \
         --query "properties.provisioningState"
     az containerapp update --name "${AZURE_CONTAINER_APP_NAME}" --resource-group ${AZURE_RESOURCE_GROUP} \
         --container-name apertus-ingress \

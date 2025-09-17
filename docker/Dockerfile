@@ -4,7 +4,7 @@ FROM vllm/vllm-openai:v0.10.2
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
-    HF_HOME=/workspace/hf-home
+    HF_HOME=/workspace/hf-home \
     HF_HUB_ENABLE_HF_TRANSFER=1 \
     TORCHDYNAMO_DISABLE=1 \
     TORCH_LOGS=+dynamo \

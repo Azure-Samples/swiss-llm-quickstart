@@ -14,7 +14,7 @@ these instructions are helping you to build and run the docker image for APERTUS
 If you would like just to run the container, you can pull the image directly from GitHub Container Registry:
 
 ```bash
-TBD
+docker pull ghcr.io/azure-samples/apertus-vllm:latest
 ```
 
 ### Prerequisites

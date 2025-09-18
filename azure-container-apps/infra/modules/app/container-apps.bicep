@@ -62,7 +62,7 @@ var secret_refs = [
   }
 ]
 
-var environmentVariables = union(environment, secret_refs)
+// var environmentVariables = union(environment, secret_refs)
 
 resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' existing = {
   name: containerAppsEnvironmentName
@@ -113,13 +113,10 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
       {
         name: 'apertus-vllm'
         image: fetchLatestImage.outputs.?containers[?0].?image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
-        args: [
-          '--model'
-          'swiss-ai/Apertus-8B-Instruct-2509'
-        ]
+        args: []
         env: [
           {
-            name: 'HUGGING_FACE_HUB_TOKEN'
+            name: 'HF_TOKEN'
             secretRef: 'hugging-face-hub-token'
           }
         ]
@@ -130,7 +127,7 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
         volumeMounts: [
           {
             volumeName: 'huggingfacecache'
-            mountPath: '/root/.cache/huggingface'
+            mountPath: '/home/appuser/workspace/hf-home'
           }
         ]
       }

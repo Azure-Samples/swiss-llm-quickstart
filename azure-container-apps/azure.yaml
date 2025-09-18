@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
-name: swiss-llm-aca
+name: apertus-vllm-aca
 infra:
   provider: bicep
   path: infra
@@ -27,6 +27,6 @@ hooks:
       continueOnError: false
 
 resources:
-  swiss-llm-aca:
+  apertus-vllm-aca:
     type: host.containerapp
-    port: 8000
+    port: 80

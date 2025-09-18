@@ -1,4 +1,4 @@
-metadata name = 'swiss-llm-aca'
+metadata name = 'apertus-vllm-aca'
 metadata description = 'Deploys the Apertus - the Swiss LLM - in an Azure Container App'
 metadata author = '<dobroegl@microsoft.com>; <frsodano@microsoft.com>'
 
@@ -58,19 +58,20 @@ param containerRegistryName string = ''
 @description('Name of the container apps environment to deploy. If not specified, a name will be generated. The maximum length is 60 characters.')
 param containerAppsEnvironmentName string = ''
 
-/* -------------------------------- Frontend -------------------------------- */
+/* -------------------------------- Apertus -------------------------------- */
 
 @maxLength(32)
-@description('Name of the frontend container app to deploy. If not specified, a name will be generated. The maximum length is 32 characters.')
-param frontendContainerAppName string = ''
+@description('Name of the Apertus container app to deploy. If not specified, a name will be generated. The maximum length is 32 characters.')
+param apertusContainerAppName string = ''
 
 
-@description('Set if the frontend container app already exists.')
+@description('Set if the Apertus container app already exists.')
 param backendExists bool = false
 
 @description('Hugging Face Hub Token to access private models')
 @secure()
-param huggingFaceHubToken string = ''
+@minLength(1)
+param huggingFaceHubToken string
 
 /* -------------------------------------------------------------------------- */
 /*                                  VARIABLES                                 */
@@ -89,7 +90,7 @@ var alphaNumericEnvironmentName = replace(replace(environmentName, '-', ''), ' '
 var tags = union(
   {
     'azd-env-name': environmentName
-    solution: 'swiss-llm-aca'
+    solution: 'apertus-vllm-aca'
   },
   extraTags
 )
@@ -121,9 +122,9 @@ var _containerAppsEnvironmentName = !empty(containerAppsEnvironmentName)
 
 // These resources only require uniqueness within resource group
 var _appIdentityName = take('${abbreviations.managedIdentityUserAssignedIdentities}app-${environmentName}', 32)
-var _frontendContainerAppName = empty(frontendContainerAppName)
-  ? take('${abbreviations.appContainerApps}frontend-${environmentName}', 32)
-  : frontendContainerAppName
+var _apertusContainerAppName = empty(apertusContainerAppName)
+  ? take('${abbreviations.appContainerApps}apertus-${environmentName}', 32)
+  : apertusContainerAppName
 
 
 /* -------------------------------------------------------------------------- */
@@ -343,19 +344,19 @@ module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.10.
   }
 }
 
-/* ------------------------------ Frontend App ------------------------------ */
+/* ------------------------------ Apertus App ------------------------------ */
 
-module frontendApp 'modules/app/container-apps.bicep' = {
-  name: '${deployment().name}-frontendApp'
+module apertusApp 'modules/app/container-apps.bicep' = {
+  name: '${deployment().name}-apertusApp'
   scope: resourceGroup()
   params: {
-    name: _frontendContainerAppName
+    name: _apertusContainerAppName
     exists: backendExists
     tags: tags
     identityId: appIdentity.outputs.resourceId
     containerAppsEnvironmentName: containerAppsEnvironment.outputs.name
     containerRegistryName: containerRegistry.outputs.name
-    serviceName: 'frontend' // Must match the service name in azure.yaml
+    serviceName: 'apertus-vllm-aca' // Must match the service name in azure.yaml
     env: {
       // Required for container app daprAI
       APPLICATIONINSIGHTS_CONNECTION_STRING:  appInsightsComponent.outputs.connectionString
@@ -498,4 +499,4 @@ output SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS bool = true
 output SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS_SENSITIVE bool = true
 
 @description('Name of the created container app')
-output AZURE_CONTAINER_APP_NAME string = frontendApp.outputs.name
+output AZURE_CONTAINER_APP_NAME string = apertusApp.outputs.name

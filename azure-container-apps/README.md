@@ -84,6 +84,7 @@ cd swiss-llm-quickstart/azure-container-apps
 Quick deploy:
 
 ```bash
+azd env new $LABEL
 azd env set HF_TOKEN hf_your_token_here
 azd up 
 ```

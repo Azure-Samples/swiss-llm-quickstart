@@ -123,7 +123,7 @@ var _containerAppsEnvironmentName = !empty(containerAppsEnvironmentName)
 // These resources only require uniqueness within resource group
 var _appIdentityName = take('${abbreviations.managedIdentityUserAssignedIdentities}app-${environmentName}', 32)
 var _apertusContainerAppName = empty(apertusContainerAppName)
-  ? take('${abbreviations.appContainerApps}apertus-${environmentName}', 32)
+  ? take('${abbreviations.appContainerApps}apertus', 32)
   : apertusContainerAppName
 
 

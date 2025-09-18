@@ -1,0 +1,39 @@
+# Bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+.python-version
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual envs & uv
+.venv/
+.uv/
+uv.lock
+
+# Tool caches
+.mypy_cache/
+.pytest_cache/
+ruff_cache/
+.ipynb_checkpoints/
+
+# Coverage / testing
+.coverage
+htmlcov/
+
+# Environment & secrets
+.env
+*.env
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Chainlit
+.chainlit/

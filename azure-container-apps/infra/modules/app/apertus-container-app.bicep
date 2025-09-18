@@ -48,22 +48,6 @@ var keyvaultIdentitySecrets = [
   }
 ]
 
-var environment = [
-  for key in objectKeys(env): {
-    name: key
-    value: '${env[key]}'
-  }
-]
-
-var secret_refs = [
-  for secret in secrets: {
-    name: secret.name
-    secretRef: secret.name
-  }
-]
-
-// var environmentVariables = union(environment, secret_refs)
-
 resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' existing = {
   name: containerAppsEnvironmentName
 }

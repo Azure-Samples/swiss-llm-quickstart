@@ -112,12 +112,12 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
     containers: [
       {
         name: 'apertus-vllm'
-        image: fetchLatestImage.outputs.?containers[?0].?image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+        image:'ghcr.io/azure-samples/apertus-vllm:latest'
         args: []
         env: [
           {
             name: 'HF_TOKEN'
-            secretRef: 'hugging-face-hub-token'
+            secretRef: 'hf-token'
           }
         ]
         resources: {
@@ -133,7 +133,7 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
       }
       {
         name: 'apertus-ingress'
-        image: fetchLatestImage.outputs.?containers[?1].?image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+        image:'ghcr.io/azure-samples/swiss-llm-quickstart-ingress:latest'
         resources: {
           cpu: json('0.5')
           memory: '0.5Gi'

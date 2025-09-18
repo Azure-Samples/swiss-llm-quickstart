@@ -23,11 +23,11 @@
     "authClientSecret": {
       "value": "${AZURE_CLIENT_APP_SECRET}"
     },
-    "backendExists": {
-      "value": "${SERVICE_BACKEND_EXISTS}"
+    "apertusExists": {
+      "value": "${SERVICE_APERTUS_EXISTS}"
     },
-    "huggingFaceHubToken": {
-      "value": "${HUGGING_FACE_HUB_TOKEN}"
+    "hfToken": {
+      "value": "${HF_TOKEN}"
     }
   }
 }

@@ -5,7 +5,7 @@ set -euo pipefail
 # Learn more here: https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/azd-extensibility
 
 # Delete the Hugging Face token from environment for security reasons
-azd env set HUGGING_FACE_HUB_TOKEN ""
+azd env set HF_TOKEN ""
 
 printf "  \033[32m➜\033[0m Import vLLM container image to ${AZURE_CONTAINER_REGISTRY_ENDPOINT}...\n"
 az acr import --force --name ${AZURE_CONTAINER_REGISTRY_ENDPOINT/.*/} \

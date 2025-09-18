@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
-name: apertus-vllm-aca
+name: apertus-quickstart
 infra:
   provider: bicep
   path: infra
@@ -27,6 +27,6 @@ hooks:
       continueOnError: false
 
 resources:
-  apertus-vllm-aca:
+  apertus-quickstart:
     type: host.containerapp
     port: 80

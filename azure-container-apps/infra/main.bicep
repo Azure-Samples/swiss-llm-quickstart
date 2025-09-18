@@ -1,4 +1,4 @@
-metadata name = 'apertus-vllm-aca'
+metadata name = 'apertus-quickstart'
 metadata description = 'Deploys the Apertus - the Swiss LLM - in an Azure Container App'
 metadata author = '<dobroegl@microsoft.com>; <frsodano@microsoft.com>'
 
@@ -66,12 +66,12 @@ param apertusContainerAppName string = ''
 
 
 @description('Set if the Apertus container app already exists.')
-param backendExists bool = false
+param apertusExists bool = false
 
 @description('Hugging Face Hub Token to access private models')
 @secure()
 @minLength(1)
-param huggingFaceHubToken string
+param hfToken string
 
 /* -------------------------------------------------------------------------- */
 /*                                  VARIABLES                                 */
@@ -90,7 +90,7 @@ var alphaNumericEnvironmentName = replace(replace(environmentName, '-', ''), ' '
 var tags = union(
   {
     'azd-env-name': environmentName
-    solution: 'apertus-vllm-aca'
+    solution: 'apertus-quickstart'
   },
   extraTags
 )
@@ -291,11 +291,11 @@ module keyVault 'br/public:avm/res/key-vault/vault:0.12.1' = {
         principalId: azurePrincipalId
       }
     ]
-    secrets: huggingFaceHubToken != ''
+    secrets: hfToken != ''
       ? [
           {
-            name: 'hugging-face-hub-token'
-            value: huggingFaceHubToken
+            name: 'hf-token'
+            value: hfToken
           }
           {
             name: authClientSecretName
@@ -346,17 +346,17 @@ module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.10.
 
 /* ------------------------------ Apertus App ------------------------------ */
 
-module apertusApp 'modules/app/container-apps.bicep' = {
+module apertusApp 'modules/app/apertus-container-app.bicep' = {
   name: '${deployment().name}-apertusApp'
   scope: resourceGroup()
   params: {
     name: _apertusContainerAppName
-    exists: backendExists
+    exists: apertusExists
     tags: tags
     identityId: appIdentity.outputs.resourceId
     containerAppsEnvironmentName: containerAppsEnvironment.outputs.name
     containerRegistryName: containerRegistry.outputs.name
-    serviceName: 'apertus-vllm-aca' // Must match the service name in azure.yaml
+    serviceName: 'apertus-quickstart' // Must match the service name in azure.yaml
     env: {
       // Required for container app daprAI
       APPLICATIONINSIGHTS_CONNECTION_STRING:  appInsightsComponent.outputs.connectionString
@@ -372,8 +372,8 @@ module apertusApp 'modules/app/container-apps.bicep' = {
     }
     secrets: [
       {
-        name: 'hugging-face-hub-token'
-        keyVaultUrl: '${keyVault.outputs.uri}secrets/hugging-face-hub-token'
+        name: 'hf-token'
+        keyVaultUrl: '${keyVault.outputs.uri}secrets/hf-token'
         identity: appIdentity.outputs.resourceId
       }
   ]

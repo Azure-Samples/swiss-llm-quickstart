@@ -4,7 +4,7 @@ set -euo pipefail
 
 # Learn more here: https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/azd-extensibility
 
-if [ "${SERVICE_BACKEND_EXISTS:-false}" = "true" ]; then
+if [ "${SERVICE_APERTUS_EXISTS:-false}" = "true" ]; then
     printf "  \033[32m➜\033[0m Backend service already exists, skipping container app update...\n"
 else 
     printf "  \033[32m➜\033[0m Backend service does not exist, updating container app images...\n"
@@ -17,5 +17,5 @@ else
         --image "${AZURE_CONTAINER_REGISTRY_ENDPOINT}/azure-samples/swiss-llm-quickstart-ingress:latest" \
         --query "properties.provisioningState"
 
-    azd env set SERVICE_BACKEND_EXISTS true
+    azd env set SERVICE_APERTUS_EXISTS true
 fi

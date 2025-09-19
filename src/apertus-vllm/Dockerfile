@@ -8,7 +8,7 @@ LABEL org.opencontainers.image.licenses=MIT
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
-    HF_HOME=home/appuser/hf-home \
+    HF_HOME=/home/appuser/hf-home \
     HF_HUB_ENABLE_HF_TRANSFER=1 \
     TORCHDYNAMO_DISABLE=1 \
     TORCH_LOGS=+dynamo \
@@ -24,9 +24,9 @@ RUN set -eux; \
     # Create a non-root user to run the app
     useradd -m -u 10001 appuser; \
     # Create necessary directories and set permissions
-    mkdir -p home/appuser/hf-home; \
-    mkdir -p home/appuser/tool-parser; \
-    chown -R appuser:appuser home/appuser; \
+    mkdir -p /home/appuser/hf-home; \
+    mkdir -p /home/appuser/tool-parser; \
+    chown -R appuser:appuser /home/appuser; \
     # Clean up
     rm -rf /var/lib/apt/lists/*
 

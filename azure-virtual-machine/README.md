@@ -106,9 +106,14 @@ for [Apertus-8B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-8B-Instru
 for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)
 
 ```bash
-./deploy_NC48.sh
+./deploy.sh --sku Standard_NC48ads_A100_v4
 ```
 
+If you want to deploy a VM for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509) in a different region and with a different name, you can run:
+
+```bash
+./deploy.sh --location swedencentral --name vm-swiss-llm-002 --sku Standard_NC48ads_A100_v4
+```
 
 ## Virtual Machine Installation
 
@@ -122,7 +127,7 @@ When connected, you need to install the correct NVIDIA Drivers.
 
 Ubuntu packages NVIDIA proprietary drivers. Those drivers come directly from NVIDIA and are simply packaged by Ubuntu so that they can be automatically managed by the system.
 
-The following script will:
+The following `init.sh` script, executed through CloudInit after VM creation, will:
 
 1) Install ubuntu-drivers utility
 2) Install the latest NVIDIA drivers
@@ -130,30 +135,9 @@ The following script will:
 4) Update PATH
 5) Reboot the VM
 
-```bash
-sudo apt update && sudo apt install -y ubuntu-drivers-common
-sudo ubuntu-drivers install
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
-sudo apt install -y ./cuda-keyring_1.1-1_all.deb
-rm -f ./cuda-keyring_1.1-1_all.deb
-sudo apt update
-sudo apt install -y cuda-toolkit-12-8
-sudo apt install -y libpython3.10-dev
+> Note: The script may take a few minutes to complete.
 
-cat >> ~/.bashrc <<'EOF'
-export PATH=/usr/local/cuda/bin${PATH:+:${PATH}}
-export LD_LIBRARY_PATH=/usr/local/cuda/lib64\${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-export CUDA_HOME=/usr/local/cuda/
-export HF_HUB_ENABLE_HF_TRANSFER=1
-export TORCHDYNAMO_DISABLE=1
-export TORCH_LOGS="+dynamo"
-export TORCH_CUDA_ARCH_LIST="8.0;8.6"
-EOF
-
-sudo reboot
-```
-
-After the reboot, verify the driver and toolkit installation:
+After the VM has rebooted, verify the driver and toolkit installation:
 
 ```bash
 nvidia-smi
@@ -188,8 +172,8 @@ torchvision = [
 ]
 EOF
 uv add torch torchvision
-uv add git+https://github.com/vllm-project/vllm
-uv add git+https://github.com/huggingface/transformers
+uv add vllm
+uv add transformers
 uv add git+https://github.com/nickjbrowning/XIELU
 uv add "huggingface_hub[cli]"
 uv add rich
@@ -294,6 +278,25 @@ To clean up all the resources created by this sample, delete the resource group 
 
 ```bash
 az group delete --name "rg-${LABEL}" --yes --no-wait
+```
+
+Or if you want to clean up the virtual machine and attached resources only, you can run:
+
+```bash
+RESOURCE_GROUP="rg-${LABEL}"
+VM_NAME="vmswissllma100"
+
+az resource update \
+  --resource-group "${RESOURCE_GROUP}" \
+  --name "${VM_NAME}" \
+  --resource-type virtualMachines \
+  --namespace Microsoft.Compute \
+  --set properties.storageProfile.osDisk.deleteOption=delete
+  
+az vm delete \
+  --resource-group "${RESOURCE_GROUP}" \
+  --name "${VM_NAME}" \
+  --force-deletion
 ```
 
 ## Cost Estimation

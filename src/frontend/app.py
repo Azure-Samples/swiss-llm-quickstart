@@ -30,7 +30,7 @@ async def on_chat_start():
 
     ai_service = AzureAIInferenceChatCompletion(
         api_key="vLLM",  # vLLM usually ignores this
-        endpoint="https://ca-apertus-cloudcherry-pixelbric.proudbay-4a0bd09b.swedencentral.azurecontainerapps.io/v1",  # vLLM OpenAI API endpoint
+        endpoint="https://ca-apertus--0000001.proudbay-4a0bd09b.swedencentral.azurecontainerapps.io/v1",  # vLLM OpenAI API endpoint
         ai_model_id="swiss-ai/Apertus-8B-Instruct-2509",
     )
     

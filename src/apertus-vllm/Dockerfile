@@ -8,7 +8,7 @@ LABEL org.opencontainers.image.licenses=MIT
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
-    HF_HOME=/workspace/hf-home \
+    HF_HOME=home/user/appuser/hf-home \
     HF_HUB_ENABLE_HF_TRANSFER=1 \
     TORCHDYNAMO_DISABLE=1 \
     TORCH_LOGS=+dynamo \
@@ -24,10 +24,9 @@ RUN set -eux; \
     # Create a non-root user to run the app
     useradd -m -u 10001 appuser; \
     # Create necessary directories and set permissions
-    mkdir -p /workspace/hf-home; \
-    mkdir -p /workspace/tool-parser; \
-    chown -R appuser:appuser /workspace; \
-    chmod -R 775 /workspace; \
+    mkdir -p home/user/appuser/hf-home; \
+    mkdir -p home/user/appuser/tool-parser; \
+    chown -R appuser:appuser home/user/appuser; \
     # Clean up
     rm -rf /var/lib/apt/lists/*
 
@@ -54,7 +53,7 @@ ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \
 
 COPY --chmod=0755 src/apertus-vllm/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-WORKDIR /workspace
+WORKDIR /home/user/appuser
 
 USER appuser
 

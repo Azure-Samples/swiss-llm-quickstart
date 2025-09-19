@@ -47,7 +47,7 @@ ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \
     # Optional Features
     KV_CACHE_DTYPE="" \
     SWAP_SPACE="" \
-    CPU_OFFLOAD_GB=""
+    CPU_OFFLOAD_GB="" \
     TOOL_CALL_PARSER=""
 
 

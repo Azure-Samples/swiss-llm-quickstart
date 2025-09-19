@@ -105,8 +105,8 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
           }
         ]
         resources: {
-          cpu: 12
-          memory: '64Gi'
+          cpu: 16
+          memory: '128Gi'
         }
         volumeMounts: [
           {
@@ -119,8 +119,8 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
         name: 'apertus-ingress'
         image:'ghcr.io/azure-samples/swiss-llm-quickstart-ingress:latest'
         resources: {
-          cpu: json('0.5')
-          memory: '0.5Gi'
+          cpu: json('4')
+          memory: '8Gi'
         }
       }
     ]

@@ -23,8 +23,12 @@ RUN set -eux; \
         python-is-python3; \
     # Create a non-root user to run the app
     useradd -m -u 10001 appuser; \
+    # Create necessary directories and set permissions
     mkdir -p /workspace/hf-home; \
+    mkdir -p /workspace/tool-parser; \
     chown -R appuser:appuser /workspace; \
+    chmod -R 775 /workspace; \
+    # Clean up
     rm -rf /var/lib/apt/lists/*
 
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -41,10 +45,12 @@ ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \
     MAX_NUM_SEQS=64 \
     # Multi-GPU sharding; 1 for single GPU (default) or >1 for multi-GPU
     TENSOR_PARALLEL_SIZE="" \
-    # Optional KV cache dtype (e.g., fp8 for large models)
+    # Optional Features
     KV_CACHE_DTYPE="" \
     SWAP_SPACE="" \
     CPU_OFFLOAD_GB=""
+    TOOL_CALL_PARSER=""
+
 
 COPY --chmod=0755 src/apertus-vllm/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 

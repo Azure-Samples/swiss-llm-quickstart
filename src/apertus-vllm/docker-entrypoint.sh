@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "Starting vLLM server for model: ${MODEL_ID}"
-
 # Authenticate with Hugging Face if token is provided
 if [[ -n "${HF_TOKEN:-}" ]]; then
     echo "Authenticating with Hugging Face..."
     hf auth login --token "${HF_TOKEN}"
 fi
+
+echo "Starting vLLM server for model: ${MODEL_ID}"
 
 ARGS=(
   "serve" "${MODEL_ID}"
@@ -19,8 +19,6 @@ ARGS=(
   "--max-model-len" "${MAX_MODEL_LEN:-4096}"
   "--max-num-seqs" "${MAX_NUM_SEQS:-512}"
   "--dtype" "auto"
-  "--enable-auto-tool-choice"
-  "--tool-call-parser" "llama3_json"
 )
 
 # Append optional tensor parallel size if provided
@@ -41,6 +39,13 @@ fi
 # Append optional GPU Memory Offload if provided (e.g., 32)
 if [[ -n "${CPU_OFFLOAD_GB:-}" ]]; then
   ARGS+=("--cpu-offload-gb" "${CPU_OFFLOAD_GB}")
+fi
+
+if [[ -n "${TOOL_CALL_PARSER:-}" ]]; then
+  ARGS+=(
+    "--enable-auto-tool-choice"
+    "--tool-call-parser" "${TOOL_CALL_PARSER}"
+  )
 fi
 
 echo "Launching: vllm ${ARGS[*]}"

@@ -111,7 +111,7 @@ module app 'br/public:avm/res/app/container-app:0.16.0' = {
         volumeMounts: [
           {
             volumeName: 'huggingfacecache'
-            mountPath: '/workspace/hf-home'
+            mountPath: '/home/appuser/hf-home'
           }
         ]
       }

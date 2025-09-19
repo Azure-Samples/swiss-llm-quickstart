@@ -19,6 +19,8 @@ ARGS=(
   "--max-model-len" "${MAX_MODEL_LEN:-4096}"
   "--max-num-seqs" "${MAX_NUM_SEQS:-512}"
   "--dtype" "auto"
+  "--enable-auto-tool-choice"
+  "--tool-call-parser" "llama3_json"
 )
 
 # Append optional tensor parallel size if provided

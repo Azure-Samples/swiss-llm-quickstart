@@ -2,16 +2,12 @@ import os
 import chainlit as cl
 import semantic_kernel as sk
 from semantic_kernel.connectors.ai import FunctionChoiceBehavior
-from semantic_kernel.connectors.ai.open_ai import (
-    OpenAIChatCompletion,
-    OpenAIChatPromptExecutionSettings,
-)
-from semantic_kernel.connectors.ai.azure_ai_inference import AzureAIInferenceChatCompletion
+from semantic_kernel.connectors.ai.azure_ai_inference import AzureAIInferenceChatCompletion , AzureAIInferenceChatPromptExecutionSettings
 from semantic_kernel.functions import kernel_function
 from semantic_kernel.contents import ChatHistory
 
 
-request_settings = OpenAIChatPromptExecutionSettings(
+request_settings = AzureAIInferenceChatPromptExecutionSettings(
     function_choice_behavior=FunctionChoiceBehavior.Auto(filters={"excluded_plugins": ["ChatBot"]})
 )
 

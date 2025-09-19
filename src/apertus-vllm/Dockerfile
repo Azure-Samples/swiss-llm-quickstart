@@ -36,9 +36,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \
     # Model file format: 'safetensors' (for no GDS support - Default) or 'fastsafetensor' (for GDS support)
     LOAD_FORMAT="safetensors" \
-    GPU_MEMORY_UTILIZATION=0.95 \
+    GPU_MEMORY_UTILIZATION=0.94 \
     MAX_MODEL_LEN=4096 \
-    MAX_NUM_SEQS=512 \
+    MAX_NUM_SEQS=64 \
     # Multi-GPU sharding; 1 for single GPU (default) or >1 for multi-GPU
     TENSOR_PARALLEL_SIZE="" \
     # Optional KV cache dtype (e.g., fp8 for large models)

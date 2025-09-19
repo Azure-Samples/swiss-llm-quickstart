@@ -50,7 +50,7 @@ The docker image in configured to run vLLM with the **APERTUS 8B model** by defa
 | SAFETENSORS_LOAD_STRATEGY | eager |
 | GPU_MEMORY_UTILIZATION | 0.95 |
 | MAX_MODEL_LEN | 4096 |
-| MAX_NUM_SEQS | 512 |
+| MAX_NUM_SEQS | 64 |
 | ENFORCE_EAGER | True |
 | IGNORE-PATTERNS | "original/*/" |
 | TENSOR_PARALLEL_SIZE | 1 |

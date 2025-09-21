@@ -11,7 +11,7 @@ Options:
       --label LABEL             Resource label (default: swiss-llm-001)
   -l, --location LOCATION       Azure location (default: switzerlandnorth)
   -g, --resource-group RG       Resource group name (default: rg-<label>)
-  -n, --name VM_NAME            Azure VM name (default: vmswissllma100)
+  -n, --name VM_NAME            Azure VM name (default: vm-swiss-llm-001)
   -u, --user ADMIN_USER         Admin username (default: azureuser)
       --image IMAGE             VM image identifier
   -h, --help                    Show this help and exit
@@ -28,8 +28,6 @@ EOF
 
 # Defaults (can be overridden via environment variables)
 LABEL="${LABEL:-swiss-llm-001}"
-# Sanitize label: remove all underscores and dashes
-ALPHA="${LABEL//[-_]/}"
 LOCATION="${LOCATION:-switzerlandnorth}"
 VM_NAME="${VM_NAME:-vm-swiss-llm-001}"
 IMAGE="${AZURE_IMAGE:-Canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest}"

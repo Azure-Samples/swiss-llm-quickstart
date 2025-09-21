@@ -127,7 +127,7 @@ When connected, you need to install the correct NVIDIA Drivers.
 
 Ubuntu packages NVIDIA proprietary drivers. Those drivers come directly from NVIDIA and are simply packaged by Ubuntu so that they can be automatically managed by the system.
 
-The following `init.sh` script, executed through CloudInit after VM creation, will:
+The following `init.sh` script, executed through cloud-init after VM creation, will:
 
 1) Install ubuntu-drivers utility
 2) Install the latest NVIDIA drivers
@@ -279,7 +279,7 @@ Or if you want to clean up the virtual machine and attached resources only, you 
 
 ```bash
 RESOURCE_GROUP="rg-${LABEL}"
-VM_NAME="vmswissllma100"
+VM_NAME="vm-swiss-llm-001"
 
 az resource update \
   --resource-group "${RESOURCE_GROUP}" \

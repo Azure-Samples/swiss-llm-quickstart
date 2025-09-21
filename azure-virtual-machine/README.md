@@ -223,7 +223,6 @@ for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Inst
 uv run vllm serve swiss-ai/Apertus-70B-Instruct-2509 \
   --tensor-parallel-size 2 \
   --max-num-seqs 32 \
-  --kv-cache-dtype fp8 \
   --gpu-memory-utilization 0.98 \
   --dtype auto \
   --safetensors-load-strategy eager \

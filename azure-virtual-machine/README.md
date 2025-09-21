@@ -211,9 +211,7 @@ uv run vllm serve swiss-ai/Apertus-8B-Instruct-2509 \
   --gpu-memory-utilization 0.95 \
   --max-model-len 4096 \
   --max-num-seqs 512 \
-  --swap-space 32 \
   --dtype auto \
-  --ignore-patterns "original/*/" \
   --safetensors-load-strategy eager \
   --enforce-eager \
   --host 127.0.0.1
@@ -223,15 +221,12 @@ for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Inst
 
 ```bash
 uv run vllm serve swiss-ai/Apertus-70B-Instruct-2509 \
-  --load-format fastsafetensors \
-  --max-model-len 32768 \
-  --max-num-seqs 512 \
-  --swap-space 128 \
-  --kv-cache-dtype fp8 \
-  --gpu-memory-utilization 0.95 \
   --tensor-parallel-size 2 \
+  --max-num-seqs 32 \
+  --kv-cache-dtype fp8 \
+  --gpu-memory-utilization 0.98 \
   --dtype auto \
-  --ignore-patterns "original/*/" \
+  --safetensors-load-strategy eager \
   --enforce-eager \
   --host 127.0.0.1
 ```

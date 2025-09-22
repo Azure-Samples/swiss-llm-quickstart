@@ -1,16 +1,12 @@
 import os
-import re
-import json
-from typing import Any, Callable, Dict, Optional, Set, Tuple
 import chainlit as cl
 import semantic_kernel as sk
-from semantic_kernel.connectors.ai import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.azure_ai_inference import (
     AzureAIInferenceChatCompletion,
     AzureAIInferenceChatPromptExecutionSettings,
 )
 from semantic_kernel.contents import ChatHistory
-from app_tools import register_plugins, tools_system_message
+from app_tools import register_plugins, router_system_message, execute_tool_call
 
 
 # Environment variables for model configuration
@@ -21,11 +17,16 @@ if not MODEL_ENDPOINT:
 if not MODEL_ID:
     raise RuntimeError("Environment variable MODEL_ID must be set.")
 
-CALL_TOOL_PATTERN = re.compile(r"CALL_TOOL\s*(\{.*\})", re.DOTALL)
-MAX_TOOL_ITERATIONS = 3
+# System message for the assistant agent
+def assistant_system_message() -> str:
+    return (
+        "You are a helpful assistant that answer user questions politely and concisely.\n"
+        "if you have in the user message a reference TOOL ANSWER, you must use that information to create a friendly answer in natural language.\n"
+        " Never call a tool directly, only use the information provided in the TOOL ANSWER.\n" \
+        " Never use the tool name in your answer, or the information that the answer is coming from a tool.\n"
+    )
 
-
-
+# Chainlit Chat Start Event
 @cl.on_chat_start
 async def on_chat_start():
     # Setup Semantic Kernel
@@ -41,27 +42,24 @@ async def on_chat_start():
     tool_registry = register_plugins(kernel)
     request_settings = AzureAIInferenceChatPromptExecutionSettings()
     request_settings.temperature = 0.2
-    request_settings.top_p = 0.2
-    request_settings.max_tokens = 1024  # Set a reasonable maximum length
-    request_settings.frequency_penalty = 0.0  # No penalty for repeating tokens
-    request_settings.presence_penalty = 0.0   # No penalty for topic repetition
 
+    # ROUTER AGENT: Initialize chat hystory and system prompt
+    router_chat_history = ChatHistory()
+    router_chat_history.add_system_message(router_system_message())
 
+    # ASSISTANT AGENT: Initialize chat history and system prompt
     chat_history = ChatHistory()
-    
-    chat_history.add_system_message(tools_system_message())
+    chat_history.add_system_message(assistant_system_message())
 
-    # Instantiate and add the Chainlit filter to the kernel
-    # This will automatically capture function calls as Steps
-    sk_filter = cl.SemanticKernelFilter(kernel=kernel)
-
-    cl.user_session.set("sk_filter", sk_filter)
+    #cl.user_session.set("sk_filter", sk_filter)
     cl.user_session.set("kernel", kernel)
     cl.user_session.set("ai_service", ai_service)
     cl.user_session.set("chat_history", chat_history)
+    cl.user_session.set("router_chat_history", router_chat_history)
     cl.user_session.set("tool_registry", tool_registry)
     cl.user_session.set("request_settings", request_settings)
 
+# Chainlit Message Event
 @cl.on_message
 async def on_message(message: cl.Message):
     kernel = cl.user_session.get("kernel")
@@ -69,104 +67,62 @@ async def on_message(message: cl.Message):
     chat_history = cl.user_session.get("chat_history")
     tool_registry = cl.user_session.get("tool_registry")
     request_settings = cl.user_session.get("request_settings")
-
-    # Add user message to history
-    chat_history.add_user_message(message.content)
+    router_chat_history = cl.user_session.get("router_chat_history")
 
     # Create a Chainlit message for the response stream
-    answer = cl.Message(content="")
-    # Send the initial empty message to start the stream
+    answer = cl.Message(content="Thinking...")
+    answer.send()
 
-    # First AI response
-    full_response = ""
-    
+    # STEP1: Use the Router agent to determine if we need to call a tool
+    router_chat_history.add_user_message(message.content)
+    router_response = ""
     async for msg in ai_service.get_streaming_chat_message_content(
-        chat_history=chat_history,
+        chat_history=router_chat_history,
         user_input=message.content,
         settings=request_settings,
         kernel=kernel,
     ):
         if msg.content:
-            full_response += msg.content
-    print("First AI response:", full_response)
-    # Check if the response contains a tool call
-    match = CALL_TOOL_PATTERN.search(full_response)
-    # if no tool call, just stream the response
-    if not match:
-        # await answer.send()
-        await answer.stream_token(full_response)
+            router_response += msg.content
+    print("Router response:", router_response)
+    
+    # STEP 2A: if the router decides that no tool is needed (ANSWER_AI), 
+    # we forward the original user message to the assistant agent
+    if "ANSWER_AI" in router_response:
+        print("Router decided to ANSWER_AI")
+        full_response = ""
+        async for msg in ai_service.get_streaming_chat_message_content(
+            chat_history=chat_history,
+            user_input=message.content,
+            settings=request_settings,
+            kernel=kernel,
+        ):
+            if msg.content:
+                full_response += msg.content
+        print("Assistant response:", full_response)
+        await answer.stream_token(full_response).update()
         # Add the full assistant response to history
         chat_history.add_assistant_message(full_response)
-        cl.user_session.set("chat_history", chat_history)
         return
-    # If there is a tool call, we start with an empty answer and process tool calls
+    # STEP 2B: If the router decides that a tool is needed (CALL_TOOL), 
+    # we forward the tool call to the assistant agent
     else:
-        interactions = 0
-        while match and interactions < MAX_TOOL_ITERATIONS:
-            try:
-                # Extract tool call details
-                tool_call_json = match.group(1)
-                tool_call = json.loads(tool_call_json)
-                # Execture the tool call
-                tool_name = tool_call.get("name")
-                tool_args = tool_call.get("arguments", {})
-
-                if tool_name in tool_registry:
-                    # Create a Chainlit Step for the tool execution
-                    with cl.Step(name=tool_name, type="tool") as step:
-                        #await answer.send()
-                        # Execute the tool and get the result
-                        tool_function = tool_registry[tool_name]
-                        tool_result = tool_function(**tool_args)
-
-                        # Update chat history with the tool result
-                        tool_message = f"CALL_TOOL_ANSWER {tool_name}: {tool_result}"
-                        chat_history.add_assistant_message(tool_message)
-                        cl.user_session.set("chat_history", chat_history)
-                        
-                        # Get a new AI response based on the tool result
-                        next_response = ""
-                        async for msg in ai_service.get_streaming_chat_message_content(
-                            chat_history=chat_history,
-                            user_input="", # No new user input, just continuing from tool result
-                            settings=request_settings,
-                            kernel=kernel,
-                        ):
-                            if msg.content:
-                                next_response += msg.content
-                                print("Next AI response:", next_response)
-                        if next_response:
-                            await answer.stream_token(next_response)
-                        # Update the full response for further tool call checks
-                        full_response = next_response
-                        match = CALL_TOOL_PATTERN.search(full_response)
-
-                else:
-                    # Handle tool not found with step visualization
-                    with cl.Step(name=f"Tool Error: {tool_name} not found", type="tool_error") as error_step:
-                        await answer.send()
-                        error_step.input = json.dumps(tool_call, indent=2)
-                        error_step.output = f"Error: Tool {tool_name} not found."
-                    
-                    # Exit if tool not found
-                    await answer.stream_token(f"\nError: Tool {tool_name} not found.")
-                    break
-
-            except Exception as e:
-                # Handle execution errors with step visualization
-                error_input = tool_call_json if 'tool_call_json' in locals() else ""
-                with cl.Step(name="Tool Execution Error", type="tool_error") as error_step:
-                    await answer.send()
-                    error_step.input = error_input
-                    error_step.output = f"Error executing tool: {str(e)}"
-                
-                # Exit if tool not found
-                await answer.send()
-                await answer.stream_token(f"\nError executing tool: {str(e)}")
-                break
-            
-            interactions += 1
-
-        # Add the full assistant response to history
-        chat_history.add_assistant_message(answer.content)
-        cl.user_session.set("chat_history", chat_history)
+        print("Router decided to CALL_TOOL")
+        tool_response = execute_tool_call(router_response, tool_registry)
+        # Updated the answer message with the tool name used
+        answer.author = "Used Tool: " + tool_response[1]
+        await answer.update()
+        # Take the tool call result and send it to the Assistant agent to prepare the final answer
+        response_with_tool = ""
+        async for msg in ai_service.get_streaming_chat_message_content(
+            chat_history=chat_history,
+            user_input=message.content + "\n" + tool_response[0],
+            settings=request_settings,
+            kernel=kernel,
+            ):
+                if msg.content:
+                    response_with_tool += msg.content
+        print("Assistant response after tool call:", response_with_tool)
+        await answer.stream_token(response_with_tool).update()
+        chat_history.add_assistant_message(response_with_tool)
+        return

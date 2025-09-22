@@ -3,7 +3,7 @@ set -euo pipefail
 [[ ${DEBUG-} =~ ^1|yes|true$ ]] && set -o xtrace
 
 # Example: call the local OpenAI-compatible chat completion API and demonstrate function/tool calling.
-API_URL="http://localhost:8000/v1/chat/completions"
+API_URL="http://localhost:18000/v1/chat/completions"
 MODEL="swiss-ai/Apertus-8B-Instruct-2509"
 
 # ensure jq is available for JSON parsing
@@ -15,19 +15,18 @@ PAYLOAD1=$(cat <<JSON
   "model": "${MODEL}",
   "messages": [
     {"role": "system", "content": "You are a helpful assistant."},
-    {"role": "user", "content": "What's the weather in Paris?"}
+    {"role": "user", "content": "What's the travel cost for Paris?"}
   ],
   "tools": [
     {
       "type": "function",
-        "description": "Get the current weather in a given city",
-        "name": "get_current_weather",
       "function": {
-        "name": "get_current_weather",
+        "name": "get_travel_cost",
+        "description": "Get the travel cost to a given city",
         "parameters": {
           "type": "object",
           "properties": {
-            "city": { "type": "string", "description": "Name of the city, e.g. Paris" }
+              "city": { "type": "string", "description": "Name of the city, e.g. Paris" }
           },
           "required": ["city"]
         }

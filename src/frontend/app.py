@@ -85,6 +85,7 @@ async def on_message(message: cl.Message):
     thinking_answer = cl.Message(content="Thinking...")
     await thinking_answer.send()
 
+
     # STEP1: Use the Router agent to determine if we need to call a tool
     router_chat_history.add_user_message(message.content)
     router_response = ""

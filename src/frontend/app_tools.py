@@ -16,7 +16,13 @@ from semantic_kernel.connectors.ai.azure_ai_inference import (
     AzureAIInferenceChatCompletion,
     AzureAIInferenceChatPromptExecutionSettings,
 )
+from azure.ai.projects import AIProjectClient
+from azure.identity import DefaultAzureCredential
 
+project_client = AIProjectClient(
+    endpoint=os.environ["PROJECT_ENDPOINT"],
+    credential=DefaultAzureCredential(),
+)
 
 # Environment variables for model configuration
 MODEL_ENDPOINT = os.getenv("MODEL_ENDPOINT")
@@ -38,7 +44,7 @@ class WeatherPlugin:
             return f"The weather in {city} is 20°C and sunny."
         if "london" in city.lower():
             return f"The weather in {city} is 15°C and cloudy."
-        return f"Sorry, I don't have the weather for {city}."
+        return f"I don't have weather data for {city}."
 
 
 class MathPlugin:
@@ -78,9 +84,10 @@ def router_system_message() -> str:
         "- Available tools are only the following:\n"
         "  • Weather.get_weather(city: str) - Gets the weather for a city\n"
         "  • Math.sum_numbers(a: float, b: float) - Add two numbers\n"
+        "Important: **YOU MUST USE ONLY THE TOOLS LISTED BELOW, NO OTHER TOOLS ARE AVAILABLE**\n"
     )
 
-def execute_tool_call(message: str, tool_registry: Dict[str, Callable[..., Any]]) -> str:
+def execute_tool_call(message: str, tool_registry: Dict[str, Callable[..., Any]]) -> None | tuple[str, str]:
     """Execute a tool call based on the provided message."""
     match = CALL_TOOL_PATTERN.search(message)
     tool_call_json = match.group(1)
@@ -88,10 +95,12 @@ def execute_tool_call(message: str, tool_registry: Dict[str, Callable[..., Any]]
     # Execture the tool call
     tool_name = tool_call.get("name")
     tool_args = tool_call.get("arguments", {})
+    print("--- Tool call:", tool_name, tool_args)
     if tool_name in tool_registry:
         tool_function = tool_registry[tool_name]
         tool_result = tool_function(**tool_args)
         print(f"Tool response -  {tool_name}:{tool_result}")
-        return (f"TOOL ANSWER: {tool_name} {tool_result}", {tool_name})
+        #return (f"TOOL_ANSWER: {tool_name} {tool_result}", tool_name)
+        return (tool_result, tool_name)
     else:
-        return "CALL_TOOL_ERROR: Tool not found."
+        return None

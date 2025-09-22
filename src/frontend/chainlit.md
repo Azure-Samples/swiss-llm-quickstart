@@ -1,14 +1,27 @@
-# Welcome to Chainlit! 🚀🤖
+# Welcome to APERTUS on Azure! 🚀🇨🇭
 
-Hi there, Developer! 👋 We're excited to have you on board. Chainlit is a powerful tool designed to help you prototype, debug and share applications built on top of LLMs.
+Hi there, AI Enthusiast! 👋 You're now chatting with **Apertus** - Switzerland's first large-scale open, multilingual language model - running on Microsoft Azure!
 
-## Useful Links 🔗
+## What is APERTUS? 🤔
 
-- **Documentation:** Get started with our comprehensive [Chainlit Documentation](https://docs.chainlit.io) 📚
-- **Discord Community:** Join our friendly [Chainlit Discord](https://discord.gg/k73SQ3FyUh) to ask questions, share your projects, and connect with other developers! 💬
+Apertus (Latin for "open") is a groundbreaking achievement from the [Swiss National AI Initiative (SNAI)](https://swiss-ai.org). This isn't just any LLM - it's been trained on a whopping 15 trillion tokens across more than 1,000 languages! 
 
-We can't wait to see what you create with Chainlit! Happy coding! 💻😊
+What makes it special? 40% of its data is non-English, including languages that have been underrepresented in LLMs until now, like Swiss German, Romansh, and many others. Talk about linguistic diversity! 🌍
 
-## Welcome screen
+## This is an Azure Implementation Example! ☁️
 
-To modify the welcome screen, edit the `chainlit.md` file at the root of your project. If you do not want a welcome screen, just leave this file empty.
+What you're experiencing right now is **Apertus running on Microsoft Azure** - demonstrating how easily you can deploy and interact with this Swiss marvel in the cloud! Azure's powerful infrastructure makes hosting these sophisticated models a breeze.
+
+## Behind the Scenes 🛠️
+
+The entire development process of Apertus - including its architecture, model weights, training data, and recipes - is openly accessible and fully documented. That's transparency at its finest!
+
+## Explore More 🔍
+
+Curious about other ways to deploy Apertus on Azure? Check out the [full quickstart repository](https://github.com/Azure-Samples/swiss-llm-quickstart) for more deployment options including:
+- Azure Virtual Machines with GPUs
+- Azure Container Apps with Serverless GPUs
+- Azure Kubernetes Service with GPUs
+- Docker Image with vLLM
+
+Now, what would you like to chat about? I'm ready in multiple languages! 🗣️💬

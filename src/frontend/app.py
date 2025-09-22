@@ -34,6 +34,32 @@ def assistant_system_message() -> str:
         "Never hallucinate, if you don't know the answer or the tool does not provide one just say you don't know.\n"
     )
 
+# Chainlit Chat Starter Setup
+@cl.set_starters
+async def set_starters():
+    return [
+        cl.Starter(
+            label="Morning routine ideation",
+            message="Can you help me create a personalized morning routine that would help increase my productivity throughout the day? Start by asking me about my current habits and what activities energize me in the morning.",
+            icon="/public/idea.svg",
+        ),
+        cl.Starter(
+            label="Explain Gravity at high school",
+            message="Give a simple explanation of what gravity is for a high school level physics course with a few typical formulas. Use lots of emojis and do it in French, Swiss German, Italian and Romansh.",
+            icon="/public/learn.svg",
+        ),
+        cl.Starter(
+            label="Swiss Bundesrat Members",
+            message="Who are the members of the Swiss Bundesrat?",
+            icon="/public/swiss-flag.svg",
+        ),
+        cl.Starter(
+            label="Text inviting friend to wedding",
+            message="Write a text asking a friend to be my plus-one at a wedding next month. I want to keep it super short and casual, and offer an out.",
+            icon="/public/write.svg",
+        )
+    ]
+
 # Chainlit Chat Start Event
 @cl.on_chat_start
 async def on_chat_start():

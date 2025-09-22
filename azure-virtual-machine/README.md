@@ -213,8 +213,7 @@ uv run vllm serve swiss-ai/Apertus-8B-Instruct-2509 \
   --max-num-seqs 512 \
   --dtype auto \
   --safetensors-load-strategy eager \
-  --enforce-eager \
-  --host 127.0.0.1
+  --enforce-eager
 ```
 
 for [Apertus-70B-Instruct-2509](https://huggingface.co/swiss-ai/Apertus-70B-Instruct-2509)

@@ -3,47 +3,70 @@ import asyncio
 from semantic_kernel import Kernel
 from semantic_kernel.utils.logging import setup_logging
 from semantic_kernel.functions import kernel_function
-from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
 from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
-from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
 from semantic_kernel.contents.chat_history import ChatHistory
-from semantic_kernel.functions.kernel_arguments import KernelArguments
-
-from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_prompt_execution_settings import (
-    AzureChatPromptExecutionSettings,
-)
 from semantic_kernel.connectors.ai.open_ai import (
     OpenAIPromptExecutionSettings, OpenAIChatCompletion
 )
 from openai import AsyncOpenAI
+from azure.ai.projects.aio import AIProjectClient
+from azure.identity.aio import DefaultAzureCredential
 
 import os
 import logging
 
 from typing import Annotated
 from semantic_kernel.functions import kernel_function
+from semantic_kernel.agents import (
+    AzureAIAgent,
+    AzureAIAgentThread,
+)
+
+MODEL_ENDPOINT = os.environ["MODEL_ENDPOINT"]
+MODEL_ID = os.environ["MODEL_ID"]
+if not MODEL_ENDPOINT:
+    raise RuntimeError("Environment variable MODEL_ENDPOINT must be set.")
+if not MODEL_ID:
+    raise RuntimeError("Environment variable MODEL_ID must be set.")
+
+PROJECT_ENDPOINT = os.environ.get("PROJECT_ENDPOINT")
+if not PROJECT_ENDPOINT:
+    raise RuntimeError("Environment variable PROJECT_ENDPOINT must be set.")
+
+
+agent_client = AzureAIAgent.create_client(
+    credential=DefaultAzureCredential(),
+    endpoint=os.environ["PROJECT_ENDPOINT"],
+)
 
 class BingPlugin:
     @kernel_function(
         name="query_bing",
         description="Queries bing for the given query and returns the results.",
     )
-    def query_bing(
+    async def query_bing(
         self,
         query: Annotated[str, "The search query"],
     ) -> str:
-        return f"Results for '{query}' from Bing"
-
+        agent_definition = await agent_client.agents.get_agent(agent_id="asst_ij7O8Ivql5WcoTbcNPdtd5i3")
+        agent = AzureAIAgent(
+            client=agent_client,
+            definition=agent_definition,
+            # plugins=[MenuPlugin()],  # add the sample plugin to the agent
+        )
+        thread: AzureAIAgentThread = AzureAIAgentThread(client=agent_client)
+        response = await agent.get_response(messages=query, thread=thread)
+        return response.content.content
+    
 async def main():
     # Initialize the kernel
     kernel = Kernel()
 
-
     chat_completion = OpenAIChatCompletion(
         async_client=AsyncOpenAI(
             api_key=os.getenv("OPENAI_API_KEY", "vLLM"),  # or None if vLLM ignores it
-            base_url="http://localhost:18000/v1"),
-        ai_model_id="swiss-ai/Apertus-8B-Instruct-2509",
+            base_url=MODEL_ENDPOINT),
+        ai_model_id=MODEL_ID,
     )
     kernel.add_service(chat_completion)
 

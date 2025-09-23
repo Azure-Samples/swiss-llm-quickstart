@@ -15,10 +15,13 @@ ARGS=(
   "--safetensors-load-strategy" "eager"
   "--ignore-patterns" "original/*/"
   "--enforce-eager"
-  "--gpu-memory-utilization" "${GPU_MEMORY_UTILIZATION:-0.90}"
+  "--gpu-memory-utilization" "${GPU_MEMORY_UTILIZATION:-0.95}"
   "--max-model-len" "${MAX_MODEL_LEN:-4096}"
-  "--max-num-seqs" "${MAX_NUM_SEQS:-512}"
+  "--max-num-seqs" "${MAX_NUM_SEQS:-64}"
   "--dtype" "auto"
+  "--enable-auto-tool-choice"
+  "--tool-parser" "${TOOL_PARSER:-"/home/appuser/tool-parser/apertus_tool_parser.py"}"
+  "--chat-template" "${CHAT_TEMPLATE:-"/home/appuser/tool-parser/apertus_chat_template.jinja"}"
 )
 
 # Append optional tensor parallel size if provided

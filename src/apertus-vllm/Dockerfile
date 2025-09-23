@@ -53,8 +53,8 @@ ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \
     CPU_OFFLOAD_GB="" \
 
 # Copying tool-parser and entrypoint script
-COPY src/apertus-vllm/tool-parser /home/appuser/tool-parser
-RUN chown -R 10001:10001 /home/appuser/tool-parser
+COPY src/apertus-vllm/tool-parser/ /home/appuser/tool-parser
+RUN chown -R appuser:appuser /home/appuser/tool-parser
 COPY --chmod=0755 src/apertus-vllm/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # Set working directory

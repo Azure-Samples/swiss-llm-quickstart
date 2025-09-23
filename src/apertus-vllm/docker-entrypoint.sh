@@ -20,8 +20,9 @@ ARGS=(
   "--max-num-seqs" "${MAX_NUM_SEQS:-64}"
   "--dtype" "auto"
   "--enable-auto-tool-choice"
-  "--tool-parser" "${TOOL_PARSER:-"/home/appuser/tool-parser/apertus_tool_parser.py"}"
-  "--chat-template" "${CHAT_TEMPLATE:-"/home/appuser/tool-parser/apertus_chat_template.jinja"}"
+  "--tool-parser-plugin" "/home/appuser/tool-parser/apertus_tool_parser.py" 
+  "--tool-call-parser" "apertus_json"
+  "--chat-template" "/home/appuser/tool-parser/apertus_chat_template.jinja"
 )
 
 # Append optional tensor parallel size if provided
@@ -42,13 +43,6 @@ fi
 # Append optional GPU Memory Offload if provided (e.g., 32)
 if [[ -n "${CPU_OFFLOAD_GB:-}" ]]; then
   ARGS+=("--cpu-offload-gb" "${CPU_OFFLOAD_GB}")
-fi
-
-if [[ -n "${TOOL_CALL_PARSER:-}" ]]; then
-  ARGS+=(
-    "--enable-auto-tool-choice"
-    "--tool-call-parser" "${TOOL_CALL_PARSER}"
-  )
 fi
 
 echo "Launching: vllm ${ARGS[*]}"

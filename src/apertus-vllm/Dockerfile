@@ -42,9 +42,6 @@ ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \
     GPU_MEMORY_UTILIZATION=0.94 \
     MAX_MODEL_LEN=4096 \
     MAX_NUM_SEQS=64 \
-    # Custom tool parser and chat template
-    TOOL_PARSER="/home/appuser/tool-parser/apertus_tool_parser.py" \
-    CHAT_TEMPLATE="/home/appuser/tool-parser/apertus_chat_template.jinja" \
     # Multi-GPU sharding; 1 for single GPU (default) or >1 for multi-GPU
     TENSOR_PARALLEL_SIZE="" \
     # Optional Features
@@ -53,7 +50,7 @@ ENV MODEL_ID=swiss-ai/Apertus-8B-Instruct-2509 \
     CPU_OFFLOAD_GB=""
 
 # Copying tool-parser and entrypoint script
-COPY --chown=appuser:appuser src/apertus-vllm/tool-parser/ /home/appuser/tool-parser
+COPY --chmod=0755 src/apertus-vllm/tool-parser/ /home/appuser/tool-parser
 COPY --chmod=0755 src/apertus-vllm/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # Set working directory

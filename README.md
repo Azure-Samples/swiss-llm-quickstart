@@ -21,12 +21,12 @@ This quickstart will help you get up & running with the Swiss LLM models built b
 
 We provide several ways to host the model on Azure:
 
-| Azure Host Service                                                           | Model version | Status      |
-| ---------------------------------------------------------------------------  | ------------- | ----------- |
-| [Azure Virtual Machine with GPUs](azure-virtual-machine/README.md)           | 8b, 70b       | ⚠️ Preview  |
-| [Azure Container Apps with Serverless GPUs](azure-container-apps/README.md)  | 8b            | 🚧 Work in Progress |   
-| [Azure Kubernetes Service with GPUs](azure-kubernetes-service/README.md)     | 8b, 70b       | 🚧 Work in Progress |
-| [Docker Image Apertus with vLLM](src/apertus-vllm//README.md)     | 8b, 70b       | ⚠️ Preview |
+
+| Azure Host Service                                                           | Model version | Status               |
+| ---------------------------------------------------------------------------  | ------------- | -----------          |
+| [Azure Virtual Machine with GPUs](azure-virtual-machine/README.md)           | 8b, 70b       | ⚠️ Preview           |
+| [Azure Container Apps with Serverless GPUs](azure-container-apps/README.md)  | 8b            | 🚧 Work in Progress  |   
+| [Azure Kubernetes Service with GPUs](azure-kubernetes-service/README.md)     | 8b, 70b       | 🚧 Work in Progress  |
 
 Based on your requirements in terms of performance and control and on the preferred architecture, you can choose what works better for you.
 

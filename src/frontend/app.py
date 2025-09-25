@@ -27,6 +27,8 @@ logging.basicConfig(
 )
 logging.getLogger("kernel").setLevel(logging.DEBUG)
 logging.getLogger("openai").setLevel(logging.DEBUG)
+
+
 # Environment variables for model configuration
 
 MODEL_ENDPOINT = os.environ["MODEL_ENDPOINT"]
@@ -77,20 +79,7 @@ SYSTEM_MESSAGE = dedent("""
     Never make up answers that are not based on the search results.
 """)
 
-
-# Environment variables for model configuration
-MODEL_ENDPOINT = os.environ["MODEL_ENDPOINT"]
-MODEL_ID = os.environ["MODEL_ID"]
-if not MODEL_ENDPOINT:
-    raise RuntimeError("Environment variable MODEL_ENDPOINT must be set.")
-if not MODEL_ID:
-    raise RuntimeError("Environment variable MODEL_ID must be set.")
-
-agent_client = AzureAIAgent.create_client(
-    credential=DefaultAzureCredential(),
-    endpoint=os.environ["PROJECT_ENDPOINT"],
-)
-               
+# Chainlit Starter Messages        
 @cl.set_starters
 async def set_starters(user: Optional["cl.User"] = None, project: Optional[str] = None) -> List[cl.Starter]:
     return [
@@ -151,6 +140,8 @@ async def on_chat_start():
     cl.user_session.set("chat_history", chat_history)
     cl.user_session.set("execution_settings", execution_settings)
 
+
+# Chainlit Message Event
 @cl.on_message
 async def on_message(message: cl.Message):
     kernel = cl.user_session.get("kernel")

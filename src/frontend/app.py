@@ -1,5 +1,6 @@
-import logging
+
 import os
+import logging
 from textwrap import dedent
 from typing import Annotated, List, Optional
 
@@ -7,20 +8,41 @@ import chainlit as cl
 import semantic_kernel as sk
 from azure.identity.aio import DefaultAzureCredential
 from openai import AsyncOpenAI
-from semantic_kernel.agents import (
-    AzureAIAgent,
-    AzureAIAgentThread,
-)
-from semantic_kernel.connectors.ai.function_choice_behavior import (
-    FunctionChoiceBehavior,
-)
-from semantic_kernel.connectors.ai.open_ai import (
-    OpenAIChatCompletion,
-    OpenAIPromptExecutionSettings,
-)
+from semantic_kernel.agents import AzureAIAgent, AzureAIAgentThread
+from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
+
+from semantic_kernel.connectors.ai.open_ai import OpenAIChatCompletion, OpenAIPromptExecutionSettings
 from semantic_kernel.contents import ChatHistory
 from semantic_kernel.functions import kernel_function
 
+from app_content_safety import is_prompt_attack, is_harmful_content
+
+
+#------------------------------------------------------
+# ENVIRONMENT VARIABLES AND VALIDATIONS
+#------------------------------------------------------
+
+# Environment variables for model configuration
+MODEL_ENDPOINT = os.environ["MODEL_ENDPOINT"]
+MODEL_ID = os.environ["MODEL_ID"]
+# Environment variables for Bing Search Plugin
+PROJECT_ENDPOINT = os.environ["PROJECT_ENDPOINT"]
+AGENT_ID = os.environ["AGENT_ID"]
+
+if not MODEL_ENDPOINT:
+    raise RuntimeError("Environment variable MODEL_ENDPOINT must be set.")
+if not MODEL_ID:
+    raise RuntimeError("Environment variable MODEL_ID must be set.")
+if not PROJECT_ENDPOINT:
+    raise RuntimeError("Environment variable PROJECT_ENDPOINT must be set.")
+if not AGENT_ID:
+    raise RuntimeError("Environment variable AGENT_ID must be set.")
+
+#------------------------------------------------------
+# LOGGING
+#------------------------------------------------------
+
+# Setup logging
 logging.basicConfig(
     format="[%(asctime)s - %(name)s:%(lineno)d - %(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
@@ -29,29 +51,23 @@ logging.getLogger("kernel").setLevel(logging.DEBUG)
 logging.getLogger("openai").setLevel(logging.DEBUG)
 
 
-# Environment variables for model configuration
+#------------------------------------------------------
+# TOOLS DEFINITIONS
+#------------------------------------------------------
 
-MODEL_ENDPOINT = os.environ["MODEL_ENDPOINT"]
-MODEL_ID = os.environ["MODEL_ID"]
-AGENT_ID = os.environ["AGENT_ID"]
-if not MODEL_ENDPOINT:
-    raise RuntimeError("Environment variable MODEL_ENDPOINT must be set.")
-if not MODEL_ID:
-    raise RuntimeError("Environment variable MODEL_ID must be set.")
-if not AGENT_ID:
-    raise RuntimeError("Environment variable AGENT_ID must be set.")
-
+# Setup Azure AI Agent client
 agent_client = AzureAIAgent.create_client(
     credential=DefaultAzureCredential(),
-    endpoint=os.environ["PROJECT_ENDPOINT"],
+    endpoint=PROJECT_ENDPOINT,
 )
 
+# TOOL: Bing Search Plugin
 class BingPlugin:
     @kernel_function(
-        name="query_bing",
-        description="Uses a search engine to find information with the query and returns the results.",
+        name="search_engine",
+        description="Find information based on the user request and returns the results.",
     )
-    async def query_bing(
+    async def search_engine(
         self,
         query: Annotated[str, "The search query"],
     ) -> dict:
@@ -68,16 +84,19 @@ class BingPlugin:
         print("DATA:", response.dict())
         return {"text": text, "citations": citations}
 
+#------------------------------------------------------
+# APPLICATION LOGIC
+#------------------------------------------------------
+
+# System Message for the AI
 SYSTEM_MESSAGE = dedent("""
-    You are a helpful assistant that answer user questions politely and concisely.            
-    Use the tools available to you to find information but do NOT answer questions 
-    based on your training data.
-    If you are unsure and the user question is not factual, you can ask the user
-    for clarification.
-    Always use the search tool when you need to find information about current events or
-    anything that is not general knowledge.
-    Never make up answers that are not based on the search results.
+    You are a polite, concise assistant who always replies in the same language as the user.        
+    - You **MUST ALWAYS** use the tools available to answer the user's questions.
+    - NEVER rely on prior training memories, NEVER fabricate or guess, you ALWAYS, at every iteration, MUST retrieve current information through the tools instead.
+    - If a user request lacks facts or clarity, ask the user for the needed clarification before proceeding.
 """)
+
+
 
 # Chainlit Starter Messages        
 @cl.set_starters
@@ -95,7 +114,7 @@ async def set_starters(user: Optional["cl.User"] = None, project: Optional[str] 
         ),
         cl.Starter(
             label="Swiss Bundesrat Members",
-            message="Who are the members of the Swiss Bundesrat?",
+            message="Who are the current members of the Swiss Bundesrat?",
             icon="/public/swiss-flag.svg",
         ),
         cl.Starter(
@@ -153,13 +172,27 @@ async def on_message(message: cl.Message):
     answer = cl.Message(content="Thinking...")
     await answer.send()
 
+    # Responsible AI checks
+    prompt_attack = await is_prompt_attack(message.content)
+    if prompt_attack:
+        logging.warning(f"Prompt attack detected and filtered: {message.content}")
+        answer.content = "Sorry, your prompt was filtered by the Responsible AI Service - Prompt Shield. Please rephrase your prompt and try again."
+        await answer.update()
+        return
+    harm_result = await is_harmful_content(message.content)
+    if harm_result.get("category") is not None and harm_result.get("severity", 0) > 2:
+        logging.warning(f"Harmful content detected and filtered: {message.content} | Category: {harm_result.get('category')} | Severity: {harm_result.get('severity')}")
+        answer.content = "Sorry, your prompt was filtered by the Responsible AI Service - Harmful Content. Please rephrase your prompt and try again."
+        await answer.update()
+        return
+
     chat_history.add_user_message(message.content)
     await answer.send()
     msg = await ai_service.get_chat_message_content(
         chat_history=chat_history,
         settings=execution_settings,
         kernel=kernel,
-        )
+    )
     if msg:
         answer.content = msg.content
         await answer.update()

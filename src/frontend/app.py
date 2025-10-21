@@ -5,18 +5,18 @@ from textwrap import dedent
 from typing import Annotated, List, Optional
 
 import chainlit as cl
-import semantic_kernel as sk
+
 from azure.identity.aio import DefaultAzureCredential
 from openai import AsyncOpenAI
+
+import semantic_kernel as sk
 from semantic_kernel.agents import AzureAIAgent, AzureAIAgentThread
 from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
-
 from semantic_kernel.connectors.ai.open_ai import OpenAIChatCompletion, OpenAIPromptExecutionSettings
 from semantic_kernel.contents import ChatHistory
 from semantic_kernel.functions import kernel_function
 
-from app_content_safety import is_prompt_attack, is_harmful_content
-
+from app_content_safety import is_prompt_attack, is_harmful_content, groundedness_detection
 
 #------------------------------------------------------
 # ENVIRONMENT VARIABLES AND VALIDATIONS
@@ -45,11 +45,8 @@ if not AGENT_ID:
 # Setup logging
 logging.basicConfig(
     format="[%(asctime)s - %(name)s:%(lineno)d - %(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
+    datefmt="%Y-%m-%d %H:%M:%S", level=logging.WARNING
 )
-logging.getLogger("kernel").setLevel(logging.DEBUG)
-logging.getLogger("openai").setLevel(logging.DEBUG)
-
 
 #------------------------------------------------------
 # TOOLS DEFINITIONS
@@ -81,7 +78,6 @@ class BingPlugin:
         response = await agent.get_response(messages=query, thread=thread)
         text = [item.text for item in response.items if item.content_type == 'text']
         citations = [{ "url": item.url, "title": item.title } for item in response.items if item.content_type == 'annotation']
-        print("DATA:", response.dict())
         return {"text": text, "citations": citations}
 
 #------------------------------------------------------
@@ -175,24 +171,42 @@ async def on_message(message: cl.Message):
     # Responsible AI checks
     prompt_attack = await is_prompt_attack(message.content)
     if prompt_attack:
-        logging.warning(f"Prompt attack detected and filtered: {message.content}")
+        logging.warning(f"PROMPT SHIELD - Attack detected and filtered: {message.content}")
         answer.content = "Sorry, your prompt was filtered by the Responsible AI Service - Prompt Shield. Please rephrase your prompt and try again."
         await answer.update()
         return
     harm_result = await is_harmful_content(message.content)
     if harm_result.get("category") is not None and harm_result.get("severity", 0) > 2:
-        logging.warning(f"Harmful content detected and filtered: {message.content} | Category: {harm_result.get('category')} | Severity: {harm_result.get('severity')}")
+        logging.warning(f"HARMFUL CONTENT - harmful content detected and filtered: {message.content} | Category: {harm_result.get('category')} | Severity: {harm_result.get('severity')}")
         answer.content = "Sorry, your prompt was filtered by the Responsible AI Service - Harmful Content. Please rephrase your prompt and try again."
         await answer.update()
         return
 
+    # Add user message to chat history
     chat_history.add_user_message(message.content)
     await answer.send()
+
+    # Get the AI response from Semantic Kernel
     msg = await ai_service.get_chat_message_content(
         chat_history=chat_history,
         settings=execution_settings,
         kernel=kernel,
     )
+
+    # Check groundedness of the response
+    groundedness_check = await groundedness_detection(
+        text=msg.content,
+        domain="Generic",
+        query=message.content,
+        threshold=0.99
+    )
+    logging.info(f"GROUNDEDNESS DETECTION - Original answer: {msg.content}")
+    logging.info(f"GROUNDEDNESS DETECTION - Result: {groundedness_check}")
+    # get the groundedness corrected text
+    if groundedness_check.get("isUngrounded") and groundedness_check.get("ungroundednessScore", 0) >= 0.99:
+        msg.content = groundedness_check.get("correctedText", msg.content if msg else "")
+
+    # Update the Chainlit message with the final answer
     if msg:
         answer.content = msg.content
         await answer.update()

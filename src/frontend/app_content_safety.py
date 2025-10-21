@@ -4,6 +4,16 @@ import aiohttp
 from azure.identity.aio import DefaultAzureCredential
 from semantic_kernel.agents import AzureAIAgent, AzureAIAgentThread
 
+#------------------------------------------------------
+# LOGGING
+#------------------------------------------------------
+logging.basicConfig(
+    format="[%(asctime)s - %(name)s:%(lineno)d - %(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S", level=logging.WARNING
+)
+
+#------------------------------------------------------
+
 async def is_prompt_attack(text: str) -> bool:
     """
     Returns True if a prompt attack (jailbreak/prompt injection) is detected by Azure Content Safety Prompt Shield.
@@ -37,13 +47,15 @@ async def is_prompt_attack(text: str) -> bool:
         async with session.post(url, headers=headers, json=payload, timeout=10) as resp:
             # If the response is not successful, log the error and return False
             if resp.status != 200:
-                logging.error(f"Prompt Shield - Content Safety API error: {resp.status} {await resp.text()}")
+                logging.error(f"PROMPT SHIELD - Content Safety API error: {resp.status} {await resp.text()}")
                 return False
             # Parse the JSON response
             data = await resp.json()
 
     # Return the boolean promptAttackResult field directly (True = attack detected, False = safe)
     return bool(data.get("userPromptAnalysis").get("attackDetected", False))
+
+#------------------------------------------------------
 
 async def is_harmful_content(text: str) -> dict:
     """
@@ -71,7 +83,7 @@ async def is_harmful_content(text: str) -> dict:
     async with aiohttp.ClientSession() as session:
         async with session.post(url, headers=headers, json=payload, timeout=10) as resp:
             if resp.status != 200:
-                logging.error(f"Harmful Content - Content Safety API error: {resp.status} {await resp.text()}")
+                logging.error(f"HARMFUL CONTENT - Content Safety API error: {resp.status} {await resp.text()}")
                 return {"category": None, "severity": 0}
             data = await resp.json()
 
@@ -90,18 +102,28 @@ async def is_harmful_content(text: str) -> dict:
     else:
         return {"category": None, "severity": 0}
 
+#------------------------------------------------------
 
-async def is_grounded(text: str, domain: str = "Generic", query: str = None) -> bool:
+async def groundedness_detection(text: str, domain: str = "Generic", query: str = None, threshold: float = 0.40) -> dict:
     """
     Calls the Agent in AI Foundry (PROJECT_ENDPOINT, AGENT_ID) to get the grounding source for the query,
     then checks if the provided text is grounded in that source using Azure AI Content Safety Groundedness Detection.
     Always uses QnA task and NonReasoning mode for speed.
     Returns True if grounded, False otherwise.
     """
+    # ENVIRONMENT VARIABLES - Grounded Resources generation
     PROJECT_ENDPOINT = os.environ.get("PROJECT_ENDPOINT")
     AGENT_ID = os.environ.get("AGENT_ID")
     if not PROJECT_ENDPOINT or not AGENT_ID:
         raise RuntimeError("PROJECT_ENDPOINT and AGENT_ID must be set.")
+    
+    # ENVIRONMENT VARIABLES - Correction LLM
+    OPEN_AI_ENDPOINT = os.environ.get("OPEN_AI_ENDPOINT")
+    OPEN_AI_DEPLOYMENT_NAME = os.environ.get("OPEN_AI_DEPLOYMENT_NAME")
+    if not OPEN_AI_ENDPOINT or not OPEN_AI_DEPLOYMENT_NAME:
+        raise RuntimeError("OPEN_AI_ENDPOINT and OPEN_AI_DEPLOYMENT_NAME must be set.")
+    
+    # ENVIRONMENT VARIABLES - Content Safety Groundedness Detection
     CONTENT_SAFETY_ENDPOINT = os.environ.get("CONTENT_SAFETY_ENDPOINT")
     CONTENT_SAFETY_KEY = os.environ.get("CONTENT_SAFETY_KEY")
     if not CONTENT_SAFETY_ENDPOINT or not CONTENT_SAFETY_KEY:
@@ -121,37 +143,64 @@ async def is_grounded(text: str, domain: str = "Generic", query: str = None) -> 
     if not query:
         raise ValueError("A query must be provided for groundedness detection.")
     response = await agent.get_response(messages=query, thread=thread)
-    # Extract the grounding source (first text response)
+
+    # 2. Extract the grounding source (first text response)
     grounding_source = None
     for item in response.items:
         if getattr(item, "content_type", None) == "text" and getattr(item, "text", None):
             grounding_source = item.text
+            logging.info(f"GROUNDEDNESS DETECTION - Grounding source: {grounding_source}")
             break
     if not grounding_source:
-        logging.error(f"No grounding source returned by agent: {response.dict() if hasattr(response, 'dict') else response}")
+        logging.error(f"GROUNDEDNESS DETECTION - No grounding source returned by agent")
         return False
 
-    # 2. Call the Azure Content Safety groundedness detection API with the user text and the grounding source
+    # 3. Call the Azure Content Safety groundedness detection API with the user text and the grounding sources
     ground_url = f"{CONTENT_SAFETY_ENDPOINT.rstrip('/')}/contentsafety/text:detectGroundedness?api-version=2024-09-15-preview"
     ground_headers = {
         "Ocp-Apim-Subscription-Key": CONTENT_SAFETY_KEY,
         "Content-Type": "application/json",
     }
-    # The payload for Summarization task does NOT use a 'summarization' field, only the required fields
+    # Prepare the payload for QnA task and Generic domain
     ground_payload = {
-        "domain": domain,
-        "task": "Summarization",
+        "domain": "Generic",
+        "task": "QnA",
+        "qna": {
+            "query": query
+        },
         "text": text,
-        "groundingSources": [grounding_source],
-        "reasoning": False
+        "groundingSources": [
+            grounding_source
+        ],
+        "correction": True,
+        "llmResource": {
+        "resourceType": "AzureOpenAI",
+        "azureOpenAIEndpoint": OPEN_AI_ENDPOINT,
+        "azureOpenAIDeploymentName": OPEN_AI_DEPLOYMENT_NAME
+        }
     }
-
+    # Make the HTTP request to the groundedness detection API
     async with aiohttp.ClientSession() as session:
         async with session.post(ground_url, headers=ground_headers, json=ground_payload, timeout=15) as resp:
             if resp.status != 200:
-                logging.error(f"Groundedness API error: {resp.status} {await resp.text()}")
+                logging.error(f"GROUNDEDNESS DETECTION - Groundedness API error: {resp.status} {await resp.text()}")
                 return False
             data = await resp.json()
-
-    # The API returns 'ungroundedDetected': True if ungrounded, False if grounded
-    return not data.get("ungroundedDetected", False)
+    
+    # 4. Anylyze the reponse, if ungrounded Detected is true and ungrondedPercentage > threshold, return correction text else return text
+    ungrounded_detected = data.get("ungroundedDetected", False)
+    ungrounded_percentage = data.get("ungroundedPercentage", 0.0)
+    corrected_text = data.get("correctedText", text)
+    
+    # If ungrounded is detected and exceeds threshold, use corrected text
+    if ungrounded_detected and ungrounded_percentage >= threshold:
+        final_text = corrected_text
+    else:
+        final_text = text
+    
+    return {
+        "correctedText": final_text,
+        "isUngrounded": ungrounded_detected,
+        "ungroundednessScore": ungrounded_percentage
+    }
+#------------------------------------------------------

@@ -1,6 +1,6 @@
 # Image to serve APERTUS models with vLLM using VLLM/VLLM-OPENAI base image
 
-FROM vllm/vllm-openai:v0.10.2
+FROM vllm/vllm-openai:v0.11.0
 
 LABEL org.opencontainers.image.source=https://github.com/Azure-Samples/swiss-llm-quickstart
 LABEL org.opencontainers.image.description="Apertus vLLM backend for Swiss LLM Quickstart"
@@ -12,7 +12,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     HF_HUB_ENABLE_HF_TRANSFER=1 \
     TORCHDYNAMO_DISABLE=1 \
     TORCH_LOGS=+dynamo \
-    # H100, A100, A10, L4 common SMs
+    # H100, A100, A10, L40 common SMs
     TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0"
 
 RUN set -eux; \

@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: apertus-quickstart
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+hooks:
+  preprovision:
+    posix:
+      shell: sh
+      run: ./infra/hooks/preprovision.sh
+      interactive: true
+      continueOnError: false
+  postprovision:
+    posix:
+      shell: sh
+      run: ./infra/hooks/postprovision.sh
+      interactive: true
+      continueOnError: false
+  postdeploy:
+    posix:
+      shell: sh
+      run: ./infra/hooks/postdeploy.sh
+      interactive: true
+      continueOnError: false
+
+resources:
+  apertus-quickstart:
+    type: host.containerapp
+    port: 80
